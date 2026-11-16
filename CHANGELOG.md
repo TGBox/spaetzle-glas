@@ -1,8 +1,12 @@
 # Changelog
 
+## SemVer v0.3.0
+
+- 2026-11-16 (622cf15): feat: add new deploy script for a github action
+
 ## SemVer v0.2.1
 
-- 2026-11-16 (10b1124): feat: add new fifth card template that can display audio and video files
+- 2026-11-16 (3cf5d40): feat: add new fifth card template that can display audio and video files
 
 ## SemVer v0.2.0
 
