@@ -14,6 +14,7 @@ import {
   setJarUnlockedState,
   setMutedState,
 } from "./domain/storage";
+import { Haptics } from "./feedback/haptics";
 import { MotionController } from "./input/motionController";
 import { StarPhysicsWorld } from "./physics/starPhysics";
 import { JarScene } from "./scene/jarScene";
@@ -35,6 +36,22 @@ function readInitialPreviewFlag(): boolean {
   return params.get("preview") === "true" || params.get("preview") === "1";
 }
 
+/** Charge added to today's star per detected shake: base plus a share of the shake strength. */
+const WAKE_CHARGE_BASE = 0.07;
+const WAKE_CHARGE_PER_STRENGTH = 0.11;
+/** Charge lost per tick when she stops shaking (a full charge fades in about 8 seconds). */
+const WAKE_CHARGE_DECAY_PER_TICK = 0.0125;
+const WAKE_CHARGE_TICK_MS = 100;
+
+/** Keeps the display on while she plays with the jar (no touches happen while shaking). */
+async function requestScreenWakeLock(): Promise<void> {
+  try {
+    await navigator.wakeLock?.request("screen");
+  } catch {
+    // Unsupported or denied (e.g. low power mode); the jar works without it.
+  }
+}
+
 function bootstrap(): void {
   const root = document.getElementById("app");
   if (!root) {
@@ -44,9 +61,11 @@ function bootstrap(): void {
   let appState: PersistedAppState = loadAppState();
   let previewAll = readInitialPreviewFlag();
   let constellationMode = false;
+  let todayCharge = 0;
 
   const physics = new StarPhysicsWorld();
   const soundscape = new SoundscapeController(appState.muted);
+  const haptics = new Haptics();
 
   let jarScene: JarScene | null = null;
   let motionController: MotionController | null = null;
@@ -78,8 +97,21 @@ function bootstrap(): void {
     });
   };
 
+  const setTodayCharge = (value: number): void => {
+    todayCharge = Math.max(0, Math.min(1, value));
+    jarScene?.setTodayCharge(todayCharge);
+    ui.setTodayCharge(todayCharge);
+  };
+
+  const getUnopenedTodayDay = (): number | null => {
+    const openedSet = new Set<number>(appState.openedDays);
+    const todayDay = getActiveTodayDay(new Date(), openedSet, previewAll);
+    return todayDay !== null && !openedSet.has(todayDay) ? todayDay : null;
+  };
+
   const handleSelectStar = (day: number): void => {
     void soundscape.unlock();
+    haptics.tick();
     const now = new Date();
 
     if (!isDayUnlocked(day, now, previewAll)) {
@@ -96,6 +128,7 @@ function bootstrap(): void {
 
     const wasAlreadyOpened = appState.openedDays.includes(day);
     appState = markDayOpened(appState, day);
+    setTodayCharge(0);
     soundscape.playStarOpen(day);
     syncAllViews();
     ui.openCardModal(entry, appState);
@@ -105,15 +138,70 @@ function bootstrap(): void {
     }
   };
 
+  /**
+   * Reacts to a shake from the sensors, the shake button, or the unlock flourish:
+   * tumbles the stars and gradually wakes today's unopened star until it opens.
+   */
+  const handleShake = (strength: number): void => {
+    if (motionController?.hasLiveSensors()) {
+      // Real acceleration already moves the stars; only add tumbling on top.
+      physics.applyShakeImpulse({ x: 0, y: 0, z: 0 }, 0.9 + strength * 1.6);
+    } else {
+      const angle = Math.random() * Math.PI * 2;
+      physics.applyShakeImpulse({
+        x: Math.cos(angle) * 2.2 * strength,
+        y: 3.4 * strength,
+        z: Math.sin(angle) * 2.2 * strength,
+      });
+    }
+    jarScene?.registerShakeBurst(0.35 + strength * 0.5);
+
+    if (constellationMode || ui.isOverlayOpen()) {
+      return;
+    }
+    const unopenedToday = getUnopenedTodayDay();
+    if (unopenedToday === null) {
+      return;
+    }
+
+    const nextCharge =
+      todayCharge + WAKE_CHARGE_BASE + strength * WAKE_CHARGE_PER_STRENGTH;
+    if (nextCharge >= 1) {
+      handleSelectStar(unopenedToday);
+      return;
+    }
+    setTodayCharge(nextCharge);
+    soundscape.playChargeStep(nextCharge);
+  };
+
   const ui = new AppUi(root, {
     onUnlockJar: async () => {
-      await soundscape.unlock();
-      await motionController?.requestPermissionsFromUserGesture();
+      // Both requests start synchronously inside the tap so iOS accepts them.
+      const motionRequest =
+        motionController?.requestPermissionsFromUserGesture() ??
+        Promise.resolve(false);
+      const audioRequest = soundscape.unlock();
+      haptics.tick();
+      const [motionGranted] = await Promise.all([motionRequest, audioRequest]);
+
       appState = setJarUnlockedState(appState, true);
       soundscape.playJarUnlock();
-      motionController?.triggerManualShake(0.9);
-      jarScene?.registerShakeBurst();
       syncAllViews();
+      handleShake(0.9);
+      void requestScreenWakeLock();
+
+      if (!motionGranted) {
+        ui.showToast(
+          "Ohne Bewegungssensoren: Ziehe durch das Glas oder tippe auf „Schütteln“"
+        );
+      }
+    },
+    onWakeJar: () => {
+      void motionController?.requestPermissionsFromUserGesture();
+      void soundscape.unlock().then(() => soundscape.playJarUnlock());
+      haptics.tick();
+      handleShake(0.6);
+      void requestScreenWakeLock();
     },
     onSelectStar: handleSelectStar,
     onOpenTodayStar: () => {
@@ -128,13 +216,13 @@ function bootstrap(): void {
     },
     onManualShake: () => {
       void soundscape.unlock();
-      void motionController?.requestPermissionsFromUserGesture();
-      motionController?.triggerManualShake(1.05);
-      jarScene?.registerShakeBurst();
+      haptics.tick();
+      motionController?.triggerManualShake(1);
     },
     onToggleConstellation: () => {
       void soundscape.unlock();
       constellationMode = !constellationMode;
+      setTodayCharge(0);
       syncAllViews();
     },
     onToggleMute: () => {
@@ -150,6 +238,7 @@ function bootstrap(): void {
       void soundscape.unlock();
       appState = redeemVoucherDay(appState, day, new Date());
       soundscape.playVoucherRedeem();
+      haptics.tick();
       syncAllViews();
       ui.showToast("Gutschein abgestempelt ♥");
     },
@@ -165,31 +254,56 @@ function bootstrap(): void {
   });
 
   motionController = new MotionController({
-    onShake: (impulse) => {
-      physics.applyShakeImpulse(impulse);
-      jarScene?.registerShakeBurst();
+    onGravityDirection: (direction) => {
+      jarScene?.setGravityDirection(direction);
     },
-    onGravityChange: (gravity) => {
-      jarScene?.setGravity(gravity);
+    onLinearAcceleration: (acceleration) => {
+      jarScene?.setLinearAcceleration(acceleration);
+    },
+    onTwist: (radiansPerSecond) => {
+      jarScene?.setTwistRate(radiansPerSecond);
+    },
+    onShake: handleShake,
+    onSensorsLive: () => {
+      ui.setSensorsLive(true);
     },
   });
-
-  if (appState.unlockedJar) {
-    motionController.startListening();
-  }
 
   jarScene = new JarScene({
     canvas: ui.canvas,
     physics,
     onStarTap: handleSelectStar,
     onCollision: (intensity, day) => {
-      soundscape.playCollisionChime(intensity, day);
+      // Stay quiet while a card is open so chimes never talk over her music or videos.
+      if (!ui.isOverlayOpen()) {
+        soundscape.playCollisionChime(intensity, day);
+      }
     },
-    onSwirlShake: (impulse) => {
-      physics.applyShakeImpulse(impulse, 0.9);
-      jarScene?.registerShakeBurst();
+    onGlassKnock: () => {
+      void soundscape.unlock();
+      soundscape.playGlassKnock();
+      haptics.tick();
     },
   });
+
+  // Today's star slowly falls back asleep when she stops shaking.
+  window.setInterval(() => {
+    if (todayCharge > 0) {
+      setTodayCharge(todayCharge - WAKE_CHARGE_DECAY_PER_TICK);
+    }
+  }, WAKE_CHARGE_TICK_MS);
+
+  // iOS releases the wake lock and suspends audio whenever the app goes to the background.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && appState.unlockedJar) {
+      void requestScreenWakeLock();
+    }
+  });
+
+  if (appState.unlockedJar) {
+    // Sensors and audio need a fresh tap after every app launch on iOS.
+    ui.showWakeVeil();
+  }
 
   syncAllViews();
   jarScene.start();

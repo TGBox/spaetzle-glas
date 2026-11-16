@@ -21,6 +21,21 @@ interface StarNode {
   wiggleRemaining: number;
 }
 
+/** Scene-space strength of gravity (real 9.81 m/s^2 feels too heavy for paper stars). */
+const GRAVITY_STRENGTH = 5.2;
+/** Scene acceleration per m/s^2 of real phone acceleration (tuned so shaking tumbles the stars while walking only makes them jingle). */
+const INERTIA_GAIN = 3.5;
+const MAX_INERTIA = 100;
+/** How strongly the stars lag behind when the jar is twisted. */
+const SWIRL_COUPLING = 0.85;
+const MAX_SWIRL_STEP = 4;
+/** Radius of the invisible tap target around each star. */
+const STAR_HIT_RADIUS = 0.42;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
 const GLASS_VERTEX_SHADER = /* glsl */ `
   varying vec3 vNormalView;
   varying vec3 vViewDir;
@@ -225,7 +240,20 @@ export class JarScene {
   private constellationBlend = 0;
   private shakeEnergy = 0;
 
-  private gravity: Vec3 = { x: 0, y: -4.2, z: 0 };
+  /** Direction of "down" in screen space; follows the phone once sensors are live. */
+  private gravityDirection: Vec3 = { x: 0, y: -1, z: 0 };
+  /** Latest linear phone acceleration in screen space (m/s^2). */
+  private linearAcceleration: Vec3 = { x: 0, y: 0, z: 0 };
+  private twistRate = 0;
+  private previousJarYawRate = 0;
+  private sensorsLive = false;
+  private parallaxYaw = 0;
+  private parallaxPitch = 0;
+  private todayCharge = 0;
+  private jarMesh: THREE.Mesh | null = null;
+  private readonly inverseJarQuat = new THREE.Quaternion();
+  private readonly scratchVector = new THREE.Vector3();
+  private readonly cameraForward = new THREE.Vector3();
   private orbitYaw = 0;
   private targetOrbitYaw = 0;
   private orbitPitch = 0.08;
@@ -237,6 +265,7 @@ export class JarScene {
   private lastPointerX = 0;
   private lastPointerY = 0;
   private pointerMovedDistance = 0;
+  private lastPointerTimeMs = 0;
 
   private rafId: number | null = null;
   private lastFrameTimeMs = 0;
@@ -245,20 +274,20 @@ export class JarScene {
 
   private readonly onStarTap: (day: number) => void;
   private readonly onCollision: (intensity: number, day: number) => void;
-  private readonly onSwirlShake: (impulse: Vec3) => void;
+  private readonly onGlassKnock: () => void;
 
   constructor(options: {
     canvas: HTMLCanvasElement;
     physics: StarPhysicsWorld;
     onStarTap: (day: number) => void;
     onCollision: (intensity: number, day: number) => void;
-    onSwirlShake: (impulse: Vec3) => void;
+    onGlassKnock: () => void;
   }) {
     this.canvas = options.canvas;
     this.physics = options.physics;
     this.onStarTap = options.onStarTap;
     this.onCollision = options.onCollision;
-    this.onSwirlShake = options.onSwirlShake;
+    this.onGlassKnock = options.onGlassKnock;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
@@ -382,13 +411,14 @@ export class JarScene {
     const jarMesh = new THREE.Mesh(jarGeo, glassMat);
     jarMesh.renderOrder = 10;
     this.jarRoot.add(jarMesh);
+    this.jarMesh = jarMesh;
 
     return glassMat;
   }
 
   private buildStars(): void {
     const starGeo = createOrigamiStarGeometry(1.0, 0.55, 0.44);
-    const hitGeo = new THREE.SphereGeometry(0.34, 10, 10);
+    const hitGeo = new THREE.SphereGeometry(STAR_HIT_RADIUS, 10, 10);
     const hitMat = new THREE.MeshBasicMaterial({
       transparent: true,
       opacity: 0,
@@ -551,12 +581,29 @@ export class JarScene {
     this.glassMaterial.uniforms.uGlowBoost.value = openedProgress;
   }
 
-  public setGravity(gravity: Vec3): void {
-    this.gravity = gravity;
+  /** Sets where "down" is in screen space (unit vector from the motion sensors). */
+  public setGravityDirection(direction: Vec3): void {
+    this.gravityDirection = direction;
+    this.sensorsLive = true;
   }
 
-  public registerShakeBurst(): void {
-    this.shakeEnergy = Math.min(1.0, this.shakeEnergy + 0.75);
+  /** Sets the phone's current linear acceleration in screen space (m/s^2). */
+  public setLinearAcceleration(acceleration: Vec3): void {
+    this.linearAcceleration = acceleration;
+  }
+
+  /** Sets how fast the phone is being twisted around the jar's vertical axis (rad/s). */
+  public setTwistRate(radiansPerSecond: number): void {
+    this.twistRate = radiansPerSecond;
+  }
+
+  /** Sets how far today's star has been "woken up" by shaking (0..1). */
+  public setTodayCharge(charge: number): void {
+    this.todayCharge = clamp(charge, 0, 1);
+  }
+
+  public registerShakeBurst(amount = 0.75): void {
+    this.shakeEnergy = Math.min(1.0, this.shakeEnergy + amount);
   }
 
   public triggerLockedStarWiggle(day: number): void {
@@ -614,19 +661,8 @@ export class JarScene {
     this.particleMaterial.uniforms.uTime.value = this.elapsedTime;
     this.particleMaterial.uniforms.uSnowBoost.value = snowBoost;
 
-    const collisions = this.physics.step(
-      dt,
-      this.gravity,
-      this.constellationBlend,
-      this.todayDay
-    );
-
-    for (let i = 0; i < Math.min(collisions.length, 3); i++) {
-      const col = collisions[i];
-      this.onCollision(col.intensity, col.dayA);
-    }
-
-    // Smooth camera orbit interpolation.
+    // Smooth jar orbit interpolation.
+    const previousOrbitYaw = this.orbitYaw;
     this.orbitYaw += (this.targetOrbitYaw - this.orbitYaw) * Math.min(1, dt * 8);
     this.orbitPitch +=
       (this.targetOrbitPitch - this.orbitPitch) * Math.min(1, dt * 8);
@@ -634,15 +670,64 @@ export class JarScene {
       this.targetOrbitYaw += dt * 0.06;
     }
 
-    this.jarRoot.rotation.y = this.orbitYaw;
-    this.jarRoot.rotation.x = this.orbitPitch;
+    // Tilting the phone lets her peek around the jar (only with live sensors).
+    // -0.64 is the gravity z component of a phone held at a relaxed reading angle.
+    const parallaxYawTarget = this.sensorsLive
+      ? clamp(this.gravityDirection.x, -1, 1) * 0.32
+      : 0;
+    const parallaxPitchTarget = this.sensorsLive
+      ? clamp(-this.gravityDirection.z - 0.64, -0.6, 0.4) * 0.35
+      : 0;
+    const parallaxEase = Math.min(1, dt * 6);
+    this.parallaxYaw += (parallaxYawTarget - this.parallaxYaw) * parallaxEase;
+    this.parallaxPitch +=
+      (parallaxPitchTarget - this.parallaxPitch) * parallaxEase;
 
-    const cameraForward = new THREE.Vector3();
-    this.camera.getWorldDirection(cameraForward);
-    const inverseJarQuat = this.jarRoot.quaternion.clone().invert();
-    const localTowardCamera = cameraForward
+    this.jarRoot.rotation.y = this.orbitYaw + this.parallaxYaw;
+    this.jarRoot.rotation.x = this.orbitPitch + this.parallaxPitch;
+    this.jarRoot.updateMatrixWorld();
+    this.inverseJarQuat.copy(this.jarRoot.quaternion).invert();
+
+    // Physics runs in the jar's own frame, so sensor input is rotated into it.
+    const localGravity = this.toJarFrame(this.gravityDirection, GRAVITY_STRENGTH);
+    const localInertia = this.toJarFrame(
+      this.linearAcceleration,
+      -INERTIA_GAIN,
+      MAX_INERTIA
+    );
+
+    // Twisting the jar (gyroscope or drag) leaves the stars behind for a moment.
+    const safeDt = Math.max(dt, 1 / 240);
+    const jarYawRate =
+      (this.orbitYaw - previousOrbitYaw) / safeDt + this.twistRate;
+    if (!this.constellationMode) {
+      this.physics.applySwirl(
+        clamp(
+          jarYawRate - this.previousJarYawRate,
+          -MAX_SWIRL_STEP,
+          MAX_SWIRL_STEP
+        ) * SWIRL_COUPLING
+      );
+    }
+    this.previousJarYawRate = jarYawRate;
+
+    const collisions = this.physics.step(
+      dt,
+      localGravity,
+      this.constellationBlend,
+      this.todayDay,
+      localInertia
+    );
+
+    for (let i = 0; i < Math.min(collisions.length, 3); i++) {
+      const col = collisions[i];
+      this.onCollision(col.intensity, col.dayA);
+    }
+
+    this.camera.getWorldDirection(this.cameraForward);
+    const localTowardCamera = this.cameraForward
       .negate()
-      .applyQuaternion(inverseJarQuat)
+      .applyQuaternion(this.inverseJarQuat)
       .normalize();
 
     for (let i = 0; i < this.starNodes.length; i++) {
@@ -675,8 +760,11 @@ export class JarScene {
 
       if (state === "available_today") {
         const pulse = 0.5 + 0.5 * Math.sin(this.elapsedTime * 3.4);
-        node.starMesh.scale.setScalar(body.radius * (1.08 + pulse * 0.14));
-        node.material.emissiveIntensity = 0.95 + pulse * 0.65;
+        node.starMesh.scale.setScalar(
+          body.radius * (1.08 + pulse * 0.14 + this.todayCharge * 0.3)
+        );
+        node.material.emissiveIntensity =
+          0.95 + pulse * 0.65 + this.todayCharge * 1.6;
       } else if (state === "available_past") {
         const pulse = 0.5 + 0.5 * Math.sin(this.elapsedTime * 2.1 + node.day);
         node.starMesh.scale.setScalar(body.radius * 1.02);
@@ -696,6 +784,72 @@ export class JarScene {
     }
 
     this.updateConstellationLines();
+  }
+
+  /**
+   * Rotates a screen-space vector into the jar's local frame and scales it,
+   * optionally limiting its length.
+   */
+  private toJarFrame(vector: Vec3, scale: number, maxLength = Infinity): Vec3 {
+    this.scratchVector
+      .set(vector.x, vector.y, vector.z)
+      .multiplyScalar(scale)
+      .clampLength(0, maxLength)
+      .applyQuaternion(this.inverseJarQuat);
+    return {
+      x: this.scratchVector.x,
+      y: this.scratchVector.y,
+      z: this.scratchVector.z,
+    };
+  }
+
+  /**
+   * Drags stars under the finger / cursor along with it, like stirring the jar.
+   */
+  private stirStars(
+    clientX: number,
+    clientY: number,
+    dxPixels: number,
+    dyPixels: number,
+    dtSeconds: number
+  ): void {
+    const rect = this.canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return;
+    }
+
+    const worldPerPixel =
+      (2 *
+        Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) *
+        this.camera.position.z) /
+      rect.height;
+    const velocityX = clamp((dxPixels * worldPerPixel) / dtSeconds, -9, 9);
+    const velocityY = clamp((-dyPixels * worldPerPixel) / dtSeconds, -9, 9);
+    if (Math.hypot(velocityX, velocityY) < 0.4) {
+      return;
+    }
+
+    const reachPixels = Math.max(56, rect.height * 0.09);
+    const follow = Math.min(1, dtSeconds * 14);
+
+    for (const node of this.starNodes) {
+      this.scratchVector
+        .copy(node.group.position)
+        .applyMatrix4(this.jarRoot.matrixWorld)
+        .project(this.camera);
+      const screenX = (this.scratchVector.x * 0.5 + 0.5) * rect.width + rect.left;
+      const screenY = (-this.scratchVector.y * 0.5 + 0.5) * rect.height + rect.top;
+      const distance = Math.hypot(screenX - clientX, screenY - clientY);
+      if (distance >= reachPixels) {
+        continue;
+      }
+
+      const weight = (1 - distance / reachPixels) * follow;
+      this.physics.nudgeBody(
+        node.day,
+        this.toJarFrame({ x: velocityX, y: velocityY, z: 0 }, weight)
+      );
+    }
   }
 
   private updateConstellationLines(): void {
@@ -779,6 +933,7 @@ export class JarScene {
     this.lastPointerX = event.clientX;
     this.lastPointerY = event.clientY;
     this.pointerMovedDistance = 0;
+    this.lastPointerTimeMs = event.timeStamp;
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
@@ -798,14 +953,15 @@ export class JarScene {
       Math.min(0.45, this.targetOrbitPitch + dy * 0.005)
     );
 
-    // Vigorous swipe on Mac/touch gently swirls the stars inside the jar.
-    const speed = Math.hypot(dx, dy);
-    if (speed > 26 && !this.constellationMode) {
-      this.onSwirlShake({
-        x: (dx / speed) * 1.4,
-        y: 1.6,
-        z: (dy / speed) * 1.0,
-      });
+    // Stars under the finger / cursor are dragged along.
+    const dtSeconds = clamp(
+      (event.timeStamp - this.lastPointerTimeMs) / 1000,
+      1 / 240,
+      0.1
+    );
+    this.lastPointerTimeMs = event.timeStamp;
+    if (!this.constellationMode) {
+      this.stirStars(event.clientX, event.clientY, dx, dy, dtSeconds);
     }
   };
 
@@ -841,6 +997,23 @@ export class JarScene {
       if (typeof dayValue === "number") {
         this.onStarTap(dayValue);
       }
+      return;
+    }
+
+    // No star under the finger: knocking on the glass makes nearby stars jump.
+    if (!this.jarMesh || this.constellationMode) {
+      return;
+    }
+    const glassHits = this.raycaster.intersectObject(this.jarMesh, false);
+    if (glassHits.length > 0) {
+      const localPoint = this.jarRoot.worldToLocal(glassHits[0].point.clone());
+      this.physics.applyKnock({
+        x: localPoint.x,
+        y: localPoint.y,
+        z: localPoint.z,
+      });
+      this.registerShakeBurst(0.2);
+      this.onGlassKnock();
     }
   }
 

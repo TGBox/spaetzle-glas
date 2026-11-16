@@ -1,4 +1,4 @@
-import { ADVENT_DAYS, ANNIVERSARY_CODES } from "../data/adventDays";
+import { ADVENT_DAYS, JAR_PASSWORDS } from "../data/adventDays";
 import type { AdventDay, StarVisualState } from "../types/advent";
 
 const ADVENT_YEAR = 2026;
@@ -6,16 +6,16 @@ const DECEMBER_MONTH_INDEX = 11; // JavaScript Date months are 0-based (11 === D
 const TOTAL_ADVENT_DAYS = 24;
 
 /**
- * Validates the user-entered anniversary code against the configured passcodes.
+ * Validates the entered password against the configured jar passwords.
  */
-export function isAnniversaryCodeValid(input: string): boolean {
+export function isJarPasswordValid(input: string): boolean {
   const normalized = input.trim().replace(/\s+/g, "").toLowerCase();
   if (normalized.length === 0) {
     return false;
   }
 
-  return ANNIVERSARY_CODES.some(
-    (code) => code.toLowerCase() === normalized
+  return JAR_PASSWORDS.some(
+    (password) => password.toLowerCase() === normalized
   );
 }
 

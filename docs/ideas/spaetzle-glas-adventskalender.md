@@ -7,14 +7,14 @@ Wie können wir deiner Freundin zum 5-jährigen Jubiläum am 1. Dezember ein mag
 ## Recommended Direction („Konstellation im Lichterglas“)
 
 Eine als PWA installierbare WebGL-Szene (Vite + TypeScript + Three.js + Web Audio API) in warmer Winter-Lichter-Ästhetik („Für mein Spätzle“).
-Beim ersten Öffnen gibt sie euer Jubiläumsdatum als Schlüssel ein; dieser Tap entriegelt das Glas, startet die prozedurale Klangwelt und aktiviert den iPhone-Schüttelsensor.
+Beim ersten Öffnen gibt sie ihren Kosenamen für dich als Passwort ein; dieser Tap entriegelt das Glas, startet die prozedurale Klangwelt und aktiviert die iPhone-Bewegungssensoren.
 
 Im Glas liegen 24 Origami-Sterne (nummeriert von 1 bis 24) mit einer leichtgewichtigen, auf 60 FPS optimierten Eigenphysik:
 
 - **Zukünftige Tage:** Schlummern in mattem Pergament; beim Antippen wackeln sie geheimnisvoll mit einem sanften dumpfen Holz-/Glockenton („Dieses Türchen erwacht erst am X. Dezember ✨“).
 - **Der heutige Tag:** Pulsiert golden, hat leichten Auftrieb und erzeugt beim Antippen einen warmen Akkord, fliegt in den Vordergrund und entfaltet sich.
 - **Bereits geöffnete Tage:** Leuchten dauerhaft warm-bernsteinfarben im Glas und sind durch feine goldene Lichtfäden miteinander verbunden (Richtung A), sodass das Glas bis Weihnachten immer heller strahlt.
-- **Schüttel-Interaktion:** Schüttelt sie das iPhone (oder wischt/klickt am Mac), wirbeln die Sterne im Glas durcheinander und erzeugen bei Kollisionen sanfte, pentatonische Windspiel-Klänge, die harmonisch nie schief klingen können.
+- **Sensor-Interaktion:** Das Glas verhält sich wie ein echtes Glas in ihrer Hand: Die Schwerkraft folgt der Lage des iPhones (auch kopfüber), jede Bewegung schubst die Sterne, Drehen wirbelt sie, und Schütteln weckt den heutigen Stern, bis er sich öffnet. Am Mac rührt, dreht und klopft sie per Maus. Kollisionen erzeugen sanfte, pentatonische Windspiel-Klänge, die harmonisch nie schief klingen können.
 
 ## Die 5 Karten-Formate beim Öffnen
 
@@ -32,14 +32,14 @@ Sobald alle 24 Sterne erwacht sind, schaltet das Glas den **Schneekugel-Modus** 
 
 ## Key Assumptions to Validate
 
-- [ ] **iOS Sensor- & Audio-Unlock:** Beim Klick auf „Glas entriegeln“ im Jubiläums-Screen werden `DeviceMotionEvent.requestPermission()` und `WebAudio` zuverlässig in iOS Safari aktiviert (Fallback: Touch-Drag / Schüttel-Button für Mac & verweigerte Berechtigung).
+- [ ] **iOS Sensor- & Audio-Unlock:** Beim Klick auf „Glas öffnen“ im Passwort-Screen werden `DeviceMotionEvent.requestPermission()` und `WebAudio` zuverlässig in iOS Safari aktiviert (Fallback: Touch-Drag / Schüttel-Button für Mac & verweigerte Berechtigung).
 - [ ] **60 FPS & Glas-Look auf dem iPhone:** Performanter Custom-GLSL-Fresnel-Glas-Shader statt schwerem `MeshPhysicalMaterial`-Transmission-Pass, sodass iPhone und Mac dauerhaft 60 FPS halten.
 - [ ] **Einfache Content-Befüllung:** Alle 24 Türchen lassen sich über `src/data/adventDays.ts` plus Foto-Ordner (`public/photos/`) zentral pflegen; ein geheimer Preview-Parameter (`?preview=true` oder 5x Tippen auf die Unterzeile) ermöglicht das Testen aller 24 Tage vorab.
 
 ## MVP Scope (In 14 Tagen fertig & poliert)
 
 - **In Scope:**
-  - Jubiläums-Lockscreen (Code-Prüfung + iOS Audio/Motion-Freischaltung)
+  - Passwort-Lockscreen (Kosename + iOS Audio/Motion-Freischaltung)
   - 3D-Glas mit 24 nummerierten Origami-Sternen (4 visuelle Zustände: verschlossen, heute, vergangen-offenbar, geöffnet)
   - Eigene Impuls-/Sphären-Physik im Glas (iPhone-Accelerometer + Maus/Touch-Wischen am Mac)
   - Prozeduraler Web-Audio-Synthesizer (Pentatonisches Windspiel bei Kollision + Öffnungs-Akkord + Stummschalter)

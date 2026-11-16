@@ -2,13 +2,14 @@ import { ADVENT_DAYS } from "../data/adventDays";
 import {
   getActiveTodayDay,
   getStarVisualState,
-  isAnniversaryCodeValid,
+  isJarPasswordValid,
   isFinaleUnlocked,
 } from "../domain/adventRules";
 import type { AdventDay, CardType, PersistedAppState, StarVisualState } from "../types/advent";
 
 export interface UiHandlers {
   readonly onUnlockJar: () => Promise<void>;
+  readonly onWakeJar: () => void;
   readonly onSelectStar: (day: number) => void;
   readonly onOpenTodayStar: () => void;
   readonly onManualShake: () => void;
@@ -26,6 +27,17 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+const ICON_ATTRIBUTES =
+  'viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+
+const ICON_SOUND_ON = `<svg ${ICON_ATTRIBUTES}><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.5a7.8 7.8 0 0 1 0 11"/></svg>`;
+const ICON_SOUND_OFF = `<svg ${ICON_ATTRIBUTES}><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>`;
+const ICON_CONSTELLATION = `<svg ${ICON_ATTRIBUTES}><path d="M12 20.5s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10z"/><circle cx="12" cy="7.6" r="0.9" fill="currentColor"/><circle cx="4.5" cy="10.5" r="0.9" fill="currentColor"/><circle cx="19.5" cy="10.5" r="0.9" fill="currentColor"/><circle cx="12" cy="20.5" r="0.9" fill="currentColor"/></svg>`;
+const ICON_GALLERY = `<svg ${ICON_ATTRIBUTES}><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>`;
+const JAR_EMBLEM = `<svg viewBox="0 0 64 72" width="64" height="72" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="21" y="4" width="22" height="8" rx="3"/><path d="M18 15h28"/><path d="M21 15c0 6-9 8-9 18v25a8 8 0 0 0 8 8h24a8 8 0 0 0 8-8V33c0-10-9-12-9-18"/><path d="M32 29l3.4 7.2 7.8 1-5.7 5.4 1.5 7.8L32 46.6l-7 3.8 1.5-7.8-5.7-5.4 7.8-1z" fill="currentColor" stroke="none"/></svg>`;
+
+const TOTAL_DAYS = 24;
 
 function getCardTypeIcon(type: CardType): string {
   switch (type) {
@@ -116,10 +128,15 @@ export class AppUi {
   public readonly canvas: HTMLCanvasElement;
   private readonly lockOverlay: HTMLElement;
   private readonly lockForm: HTMLFormElement;
+  private readonly lockCard: HTMLElement;
   private readonly lockInput: HTMLInputElement;
   private readonly lockError: HTMLElement;
+  private readonly wakeVeil: HTMLButtonElement;
 
   private readonly progressPill: HTMLElement;
+  private readonly starProgress: HTMLElement;
+  private readonly chargeMeter: HTMLElement;
+  private readonly chargeFill: HTMLElement;
   private readonly previewPill: HTMLElement;
   private readonly finalePill: HTMLElement;
   private readonly muteButton: HTMLButtonElement;
@@ -140,6 +157,12 @@ export class AppUi {
   private secretTapCount = 0;
   private secretTapResetId: number | null = null;
   private currentModalDay: number | null = null;
+  private sensorsLive = false;
+  private hintContext: {
+    readonly constellationMode: boolean;
+    readonly finaleActive: boolean;
+    readonly unopenedTodayDay: number | null;
+  } = { constellationMode: false, finaleActive: false, unopenedTodayDay: null };
 
   constructor(root: HTMLElement, handlers: UiHandlers) {
     this.root = root;
@@ -153,52 +176,70 @@ export class AppUi {
           <div class="brand-block">
             <h1 class="brand-title">Für mein Spätzle</h1>
             <p class="brand-subtitle" role="button" tabindex="0">5 Jahre wir • Advents-Glas</p>
+            <div class="progress-row">
+              <div class="star-progress js-star-progress" aria-hidden="true"></div>
+              <span class="progress-count js-progress-pill">0 / 24</span>
+            </div>
             <div class="status-pills">
-              <span class="pill js-progress-pill">0 / 24 Sterne leuchten</span>
-              <span class="pill pill-finale js-finale-pill" hidden>❄️ Heiligabend-Schneekugel</span>
+              <span class="pill pill-finale js-finale-pill" hidden>Heiligabend-Schneekugel</span>
               <span class="pill pill-preview js-preview-pill" hidden>Vorschau aktiv</span>
             </div>
           </div>
 
           <div class="hud-actions-top">
-            <button type="button" class="icon-btn js-mute-btn" aria-label="Ton ein- oder ausschalten" title="Ton">🔊</button>
-            <button type="button" class="icon-btn js-constellation-btn" aria-label="Sternbild-Modus umschalten" title="Sternbild">✨</button>
-            <button type="button" class="icon-btn js-gallery-btn" aria-label="Alle 24 Momente öffnen" title="Galerie">📖</button>
+            <button type="button" class="icon-btn js-mute-btn" aria-label="Ton ausschalten" title="Ton">${ICON_SOUND_ON}</button>
+            <button type="button" class="icon-btn js-constellation-btn" aria-label="Sternbild-Modus umschalten" title="Sternbild">${ICON_CONSTELLATION}</button>
+            <button type="button" class="icon-btn js-gallery-btn" aria-label="Alle 24 Momente öffnen" title="Unsere 24 Momente">${ICON_GALLERY}</button>
           </div>
         </div>
 
         <div class="hud-bottom">
-          <div class="hud-hint js-hud-hint">Tippe einen leuchtenden Stern an oder schüttle dein iPhone</div>
+          <div class="charge-meter js-charge-meter" hidden>
+            <div class="charge-fill js-charge-fill"></div>
+          </div>
+          <div class="hud-hint js-hud-hint"></div>
           <div class="hud-actions-bottom">
             <button type="button" class="btn btn-primary js-today-btn">Heutigen Stern öffnen</button>
-            <button type="button" class="btn btn-secondary js-shake-btn">Schütteln 💫</button>
+            <button type="button" class="btn btn-secondary js-shake-btn">Schütteln</button>
           </div>
         </div>
       </div>
 
       <div class="toast js-toast" role="status" aria-live="polite"></div>
 
-      <div class="overlay js-lock-overlay">
-        <div class="lock-card">
-          <div class="lock-emblem">✨🫙✨</div>
+      <button type="button" class="wake-veil is-hidden js-wake-veil">
+        <span class="wake-emblem">${JAR_EMBLEM}</span>
+        <span class="wake-title">Für mein Spätzle</span>
+        <span class="wake-hint">Tippe, um das Glas aufzuwecken</span>
+      </button>
+
+      <div class="overlay overlay-lock js-lock-overlay">
+        <div class="lock-card js-lock-card">
+          <div class="lock-emblem">${JAR_EMBLEM}</div>
+          <p class="lock-kicker">5 Jahre wir</p>
           <h2 class="lock-title">Für mein Spätzle</h2>
           <p class="lock-subtitle">
-            Alles Liebe zum <strong>5-jährigen Jubiläum</strong>! In diesem Glas warten 24 kleine Origami-Sterne aus unseren gemeinsamen Jahren auf dich.
+            In diesem Glas warten 24 kleine Origami-Sterne aus unseren gemeinsamen Jahren auf dich.
           </p>
-          <form class="lock-form js-lock-form">
+          <form class="lock-form js-lock-form" novalidate>
+            <label class="lock-label" for="jar-password">Nur du kennst das Passwort: Wie nennst du mich?</label>
             <input
+              id="jar-password"
               type="text"
-              inputmode="numeric"
-              autocomplete="off"
               class="lock-input js-lock-input"
-              placeholder="Unser Jubiläumsdatum (z. B. 01.12.2021)"
-              aria-label="Jubiläumsdatum eingeben"
+              placeholder="Dein Kosename für mich"
+              autocomplete="off"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+              enterkeyhint="go"
+              aria-describedby="jar-password-error"
             />
-            <p class="lock-error js-lock-error"></p>
-            <button type="submit" class="btn btn-primary">Glas entriegeln ✨</button>
+            <p class="lock-error js-lock-error" id="jar-password-error" role="alert"></p>
+            <button type="submit" class="btn btn-primary">Glas öffnen</button>
           </form>
           <p class="lock-footnote">
-            Tipp: Mit dem Öffnen werden Klanglandschaft &amp; Schüttel-Sensor aktiviert.
+            Auf dem iPhone fragt das Glas gleich, ob es Bewegung spüren darf. Sag Ja, dann folgen die Sterne jedem Kippen und Schütteln.
           </p>
         </div>
       </div>
@@ -215,7 +256,12 @@ export class AppUi {
     this.canvas = this.mustQuery<HTMLCanvasElement>(".scene-canvas");
     this.lockOverlay = this.mustQuery<HTMLElement>(".js-lock-overlay");
     this.lockForm = this.mustQuery<HTMLFormElement>(".js-lock-form");
+    this.lockCard = this.mustQuery<HTMLElement>(".js-lock-card");
     this.lockInput = this.mustQuery<HTMLInputElement>(".js-lock-input");
+    this.wakeVeil = this.mustQuery<HTMLButtonElement>(".js-wake-veil");
+    this.starProgress = this.mustQuery<HTMLElement>(".js-star-progress");
+    this.chargeMeter = this.mustQuery<HTMLElement>(".js-charge-meter");
+    this.chargeFill = this.mustQuery<HTMLElement>(".js-charge-fill");
     this.lockError = this.mustQuery<HTMLElement>(".js-lock-error");
 
     this.progressPill = this.mustQuery<HTMLElement>(".js-progress-pill");
@@ -249,15 +295,28 @@ export class AppUi {
   }
 
   private bindEvents(): void {
-    this.lockForm.addEventListener("submit", async (event) => {
+    this.lockForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      if (!isAnniversaryCodeValid(this.lockInput.value)) {
+      if (!isJarPasswordValid(this.lockInput.value)) {
         this.lockError.textContent =
-          "Das passt noch nicht ganz — denk an den 01.12.2021 ✨";
+          "So nennst du mich nicht. Versuch es noch einmal.";
+        // Restart the shake animation even when it is already applied.
+        this.lockCard.classList.remove("is-shaking");
+        void this.lockCard.offsetWidth;
+        this.lockCard.classList.add("is-shaking");
+        this.lockInput.select();
         return;
       }
       this.lockError.textContent = "";
-      await this.handlers.onUnlockJar();
+      this.lockInput.blur();
+      // Not awaited before calling: the handler must start inside this user gesture
+      // so iOS shows the motion sensor prompt.
+      void this.handlers.onUnlockJar();
+    });
+
+    this.wakeVeil.addEventListener("click", () => {
+      this.wakeVeil.classList.add("is-hidden");
+      this.handlers.onWakeJar();
     });
 
     this.muteButton.addEventListener("click", () => {
@@ -326,40 +385,47 @@ export class AppUi {
     const finaleActive = isFinaleUnlocked(openedSet, now, previewAll);
     const todayDay = getActiveTodayDay(now, openedSet, previewAll);
 
-    if (state.unlockedJar) {
-      this.lockOverlay.classList.add("is-hidden");
-    } else {
-      this.lockOverlay.classList.remove("is-hidden");
+    if (state.unlockedJar && this.lockOverlay.isConnected) {
+      // Removing the form (not just hiding it) also clears iOS's "shake to undo typing"
+      // prompt, which would otherwise pop up as soon as she shakes the phone.
+      this.lockOverlay.remove();
     }
 
-    this.progressPill.textContent = `${openedSet.size} / 24 Sterne leuchten`;
+    this.progressPill.textContent = `${openedSet.size} / ${TOTAL_DAYS}`;
+    this.renderStarProgress(openedSet, todayDay);
     this.previewPill.hidden = !previewAll;
     this.finalePill.hidden = !finaleActive;
 
-    this.muteButton.textContent = state.muted ? "🔇" : "🔊";
+    this.muteButton.innerHTML = state.muted ? ICON_SOUND_OFF : ICON_SOUND_ON;
+    this.muteButton.setAttribute(
+      "aria-label",
+      state.muted ? "Ton einschalten" : "Ton ausschalten"
+    );
     this.constellationButton.classList.toggle("is-active", constellationMode);
 
     if (todayDay === null) {
       if (now.getFullYear() === 2026 && now.getMonth() < 11) {
-        this.todayButton.textContent = "Ab 1. Dezember bereit ✨";
+        this.todayButton.textContent = "Ab dem 1. Dezember bereit";
         this.todayButton.disabled = true;
       } else {
-        this.todayButton.textContent = "Alle 24 Sterne im Glas ✨";
+        this.todayButton.textContent = "Alle 24 Sterne im Glas";
         this.todayButton.disabled = false;
       }
     } else if (openedSet.has(todayDay)) {
       this.todayButton.textContent = `Stern ${todayDay} noch einmal ansehen`;
       this.todayButton.disabled = false;
     } else {
-      this.todayButton.textContent = `Heutigen Stern öffnen (Tag ${todayDay})`;
+      this.todayButton.textContent = `Stern ${todayDay} öffnen`;
       this.todayButton.disabled = false;
     }
 
-    this.hintText.textContent = constellationMode
-      ? "Sternbild-Modus: Alle Sterne formen unser Herz ✨"
-      : finaleActive
-        ? "Frohe Weihnachten! Schüttle für die goldene Schneekugel ❄️"
-        : "Tippe einen Stern an, ziehe zum Drehen oder schüttle das Glas";
+    this.hintContext = {
+      constellationMode,
+      finaleActive,
+      unopenedTodayDay:
+        todayDay !== null && !openedSet.has(todayDay) ? todayDay : null,
+    };
+    this.renderHint();
 
     // Re-render currently open modals if state changed (e.g. voucher stamped).
     if (
@@ -375,6 +441,73 @@ export class AppUi {
     if (!this.galleryOverlay.classList.contains("is-hidden")) {
       this.renderGalleryContent(state, now, previewAll);
     }
+  }
+
+  private renderStarProgress(
+    openedSet: ReadonlySet<number>,
+    todayDay: number | null
+  ): void {
+    let dots = "";
+    for (let day = 1; day <= TOTAL_DAYS; day++) {
+      const stateClass = openedSet.has(day)
+        ? " is-on"
+        : day === todayDay
+          ? " is-today"
+          : "";
+      dots += `<span class="star-dot${stateClass}"></span>`;
+    }
+    this.starProgress.innerHTML = dots;
+  }
+
+  private renderHint(): void {
+    const { constellationMode, finaleActive, unopenedTodayDay } =
+      this.hintContext;
+
+    if (constellationMode) {
+      this.hintText.textContent = "Sternbild: Alle Sterne formen unser Herz";
+    } else if (unopenedTodayDay !== null) {
+      this.hintText.textContent = this.sensorsLive
+        ? `Schüttle dein iPhone, bis Stern ${unopenedTodayDay} erwacht – oder tippe ihn an`
+        : `Tippe Stern ${unopenedTodayDay} an – oder schüttle das Glas, bis er erwacht`;
+    } else if (finaleActive) {
+      this.hintText.textContent =
+        "Frohe Weihnachten! Schüttle das Glas für die goldene Schneekugel";
+    } else {
+      this.hintText.textContent = this.sensorsLive
+        ? "Kippe, drehe und schüttle dein iPhone – die Sterne folgen dir"
+        : "Ziehe durch das Glas, um die Sterne zu verwirbeln";
+    }
+  }
+
+  /**
+   * Switches hints and controls between sensor mode (iPhone) and pointer mode (Mac).
+   */
+  public setSensorsLive(live: boolean): void {
+    this.sensorsLive = live;
+    this.shakeButton.hidden = live;
+    this.renderHint();
+  }
+
+  /** Shows how far today's star has been shaken awake (0..1). */
+  public setTodayCharge(progress: number): void {
+    const clamped = Math.max(0, Math.min(1, progress));
+    this.chargeMeter.hidden = clamped <= 0.01;
+    this.chargeFill.style.transform = `scaleX(${clamped.toFixed(3)})`;
+  }
+
+  /** Shows the "tap to wake" veil on return visits (needed to re-enable sensors and audio). */
+  public showWakeVeil(): void {
+    this.wakeVeil.classList.remove("is-hidden");
+  }
+
+  /** True while the lock screen, wake veil, a card, or the gallery covers the jar. */
+  public isOverlayOpen(): boolean {
+    return (
+      this.lockOverlay.isConnected ||
+      !this.wakeVeil.classList.contains("is-hidden") ||
+      !this.cardOverlay.classList.contains("is-hidden") ||
+      !this.galleryOverlay.classList.contains("is-hidden")
+    );
   }
 
   public showToast(message: string): void {

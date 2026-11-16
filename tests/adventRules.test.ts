@@ -3,24 +3,25 @@ import {
   getActiveTodayDay,
   getAdventDayByNumber,
   getStarVisualState,
-  isAnniversaryCodeValid,
+  isJarPasswordValid,
   isDayUnlocked,
   isFinaleUnlocked,
 } from "../src/domain/adventRules";
 
-describe("isAnniversaryCodeValid", () => {
-  it("accepts configured anniversary date formats with whitespace normalization", () => {
-    expect(isAnniversaryCodeValid("01.12.2021")).toBe(true);
-    expect(isAnniversaryCodeValid(" 01122021 ")).toBe(true);
-    expect(isAnniversaryCodeValid("01.12.")).toBe(true);
-    expect(isAnniversaryCodeValid("1.12.2021")).toBe(true);
-    expect(isAnniversaryCodeValid("5")).toBe(true);
+describe("isJarPasswordValid", () => {
+  it("accepts the pet name regardless of case and surrounding whitespace", () => {
+    expect(isJarPasswordValid("Fusili")).toBe(true);
+    expect(isJarPasswordValid(" fusili ")).toBe(true);
+    expect(isJarPasswordValid("FUSILI")).toBe(true);
+    expect(isJarPasswordValid("Fusilli")).toBe(true);
   });
 
-  it("rejects empty or incorrect codes", () => {
-    expect(isAnniversaryCodeValid("")).toBe(false);
-    expect(isAnniversaryCodeValid("   ")).toBe(false);
-    expect(isAnniversaryCodeValid("25.12.2021")).toBe(false);
+  it("rejects empty or incorrect passwords, including the old date codes", () => {
+    expect(isJarPasswordValid("")).toBe(false);
+    expect(isJarPasswordValid("   ")).toBe(false);
+    expect(isJarPasswordValid("01.12.2021")).toBe(false);
+    expect(isJarPasswordValid("5")).toBe(false);
+    expect(isJarPasswordValid("Spätzle")).toBe(false);
   });
 });
 

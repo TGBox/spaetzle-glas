@@ -36,11 +36,13 @@ export const DEFAULT_JAR_PHYSICS_CONFIG: JarPhysicsConfig = {
   jarRadius: 1.62,
   jarMinY: -1.95,
   jarMaxY: 1.85,
-  starRadius: 0.24,
+  starRadius: 0.3,
   restitution: 0.58,
   wallRestitution: 0.48,
   collisionSoundThreshold: 0.65,
 };
+
+const ZERO_VECTOR: Vec3 = { x: 0, y: 0, z: 0 };
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -160,13 +162,68 @@ export class StarPhysicsWorld {
   }
 
   /**
+   * Makes the stars lag behind when the jar's spin around its vertical axis changes.
+   * `deltaAngularVelocity` is the change of the jar's angular velocity in rad/s.
+   */
+  public applySwirl(deltaAngularVelocity: number): void {
+    if (deltaAngularVelocity === 0) {
+      return;
+    }
+    for (const body of this.bodies) {
+      // Relative to the jar, a star moves with -(omega x r).
+      body.velocity.x -= deltaAngularVelocity * body.position.z;
+      body.velocity.z += deltaAngularVelocity * body.position.x;
+      body.angularVelocity.y -= deltaAngularVelocity * 0.6;
+    }
+  }
+
+  /**
+   * Adds a velocity change to a single star (used for stirring with a finger or the mouse).
+   */
+  public nudgeBody(day: number, deltaVelocity: Vec3): void {
+    const body = this.bodies[day - 1];
+    if (!body) {
+      return;
+    }
+    body.velocity.x += deltaVelocity.x;
+    body.velocity.y += deltaVelocity.y;
+    body.velocity.z += deltaVelocity.z;
+    body.angularVelocity.x += deltaVelocity.y * 1.4;
+    body.angularVelocity.z -= deltaVelocity.x * 1.4;
+  }
+
+  /**
+   * Pushes nearby stars away from a point on the glass, like knocking on the jar.
+   */
+  public applyKnock(point: Vec3, strength = 1, reach = 1.5): void {
+    for (const body of this.bodies) {
+      const dx = body.position.x - point.x;
+      const dy = body.position.y - point.y;
+      const dz = body.position.z - point.z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (dist >= reach || dist < 0.0001) {
+        continue;
+      }
+      const push = (1 - dist / reach) * 3.2 * strength;
+      body.velocity.x += (dx / dist) * push;
+      body.velocity.y += (dy / dist) * push;
+      body.velocity.z += (dz / dist) * push;
+      body.angularVelocity.x += push * 0.9;
+      body.angularVelocity.y -= push * 0.7;
+    }
+  }
+
+  /**
    * Advances the physics simulation by `dt` seconds and returns significant star collisions.
+   * `gravity` may point in any direction (the jar follows the phone's real orientation);
+   * `inertia` is an extra acceleration from moving the jar that also affects today's star.
    */
   public step(
     dt: number,
     gravity: Vec3 = { x: 0, y: -4.2, z: 0 },
     constellationBlend = 0,
-    todayDay: number | null = null
+    todayDay: number | null = null,
+    inertia: Vec3 = ZERO_VECTOR
   ): CollisionEvent[] {
     const clampedDt = clamp(dt, 0.001, 0.04);
     const blend = clamp(constellationBlend, 0, 1);
@@ -184,16 +241,21 @@ export class StarPhysicsWorld {
       const shimmerX = Math.cos(shimmerPhase) * 0.35;
       const shimmerZ = Math.sin(shimmerPhase * 0.9) * 0.35;
 
-      body.velocity.x += (gravity.x * gravityScale + shimmerX) * clampedDt;
-      body.velocity.y += gravity.y * gravityScale * clampedDt;
-      body.velocity.z += (gravity.z * gravityScale + shimmerZ) * clampedDt;
+      body.velocity.x +=
+        ((gravity.x + inertia.x) * gravityScale + shimmerX) * clampedDt;
+      body.velocity.y += (gravity.y + inertia.y) * gravityScale * clampedDt;
+      body.velocity.z +=
+        ((gravity.z + inertia.z) * gravityScale + shimmerZ) * clampedDt;
 
-      // Gentle upward buoyancy for today's star so it floats prominently above the pile.
+      // Today's star is weightless: it cancels gravity (whichever way it points)
+      // and hovers prominently above the pile, but still reacts to shaking.
       if (todayDay !== null && body.day === todayDay && blend < 0.5) {
         const targetFloatY = 0.72 + Math.sin(this.elapsedSeconds * 1.8) * 0.12;
         const heightError = targetFloatY - body.position.y;
-        const buoyancy = Math.abs(gravity.y) + clamp(heightError * 5.0, -2.5, 4.5);
-        body.velocity.y += buoyancy * gravityScale * clampedDt;
+        const lift = clamp(heightError * 5.0, -2.5, 4.5);
+        body.velocity.x -= gravity.x * gravityScale * clampedDt;
+        body.velocity.y += (lift - gravity.y) * gravityScale * clampedDt;
+        body.velocity.z -= gravity.z * gravityScale * clampedDt;
       }
 
       // Spring attraction toward the 3D Heart Constellation when constellation mode is active.
@@ -247,6 +309,8 @@ export class StarPhysicsWorld {
     const events: CollisionEvent[] = [];
     const count = this.bodies.length;
     const restitution = this.config.restitution * (1 - constellationBlend * 0.7);
+    // Stars shrink their collision size in constellation mode so the heart can form.
+    const sizeScale = 1 - constellationBlend * 0.55;
 
     for (let i = 0; i < count; i++) {
       const a = this.bodies[i];
@@ -255,7 +319,7 @@ export class StarPhysicsWorld {
         const dx = b.position.x - a.position.x;
         const dy = b.position.y - a.position.y;
         const dz = b.position.z - a.position.z;
-        const minDist = a.radius + b.radius;
+        const minDist = (a.radius + b.radius) * sizeScale;
         const distSq = dx * dx + dy * dy + dz * dz;
 
         if (distSq >= minDist * minDist) {

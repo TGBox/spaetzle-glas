@@ -9,7 +9,7 @@
   --ink: #2a1d24;
   --glass-bg: rgba(24, 15, 34, 0.68);
   --glass-border: rgba(255, 224, 170, 0.24);
-  --font-serif: "New York", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-serif: ui-serif, "New York", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
     system-ui, sans-serif;
 }
@@ -17,6 +17,16 @@
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Classes that set `display` would otherwise override the hidden attribute. */
+[hidden] {
+  display: none !important;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 
 html,
@@ -77,36 +87,75 @@ body {
 
 .brand-block {
   pointer-events: auto;
-  background: var(--glass-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--glass-border);
-  border-radius: 18px;
-  padding: 10px 14px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  min-width: 0;
+  text-shadow: 0 2px 14px rgba(8, 4, 14, 0.85);
 }
 
 .brand-title {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: clamp(1.1rem, 2.5vw, 1.38rem);
-  font-weight: 700;
+  font-size: clamp(1.35rem, 5.4vw, 1.7rem);
+  font-weight: 600;
+  line-height: 1.15;
   color: var(--gold-soft);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
 }
 
 .brand-subtitle {
-  margin: 2px 0 0;
-  font-size: 0.78rem;
-  color: rgba(252, 245, 232, 0.78);
+  margin: 3px 0 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(252, 245, 232, 0.62);
   cursor: pointer;
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.star-progress {
+  display: grid;
+  grid-template-columns: repeat(12, 6px);
+  gap: 4px;
+}
+
+.star-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(252, 245, 232, 0.2);
+}
+
+.star-dot.is-on {
+  background: var(--gold);
+  box-shadow: 0 0 6px rgba(255, 212, 121, 0.75);
+}
+
+.star-dot.is-today {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--gold);
+  animation: dotPulse 1.8s ease-in-out infinite;
+}
+
+.progress-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(252, 245, 232, 0.72);
 }
 
 .status-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 8px;
+  text-shadow: none;
 }
 
 .pill {
@@ -141,15 +190,15 @@ body {
 }
 
 .icon-btn {
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 14px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
   border: 1px solid var(--glass-border);
   background: var(--glass-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  color: var(--cream);
-  font-size: 1.15rem;
+  color: var(--gold-soft);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -175,11 +224,33 @@ body {
   gap: 10px;
 }
 
+.charge-meter {
+  width: min(220px, 60%);
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(252, 245, 232, 0.16);
+  overflow: hidden;
+}
+
+.charge-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f1a85c 0%, #ffe29a 100%);
+  box-shadow: 0 0 10px rgba(255, 212, 121, 0.8);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.18s ease-out;
+}
+
 .hud-hint {
-  font-size: 0.8rem;
-  color: rgba(252, 245, 232, 0.72);
+  max-width: 34ch;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: rgba(252, 245, 232, 0.78);
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
   text-align: center;
+  text-wrap: balance;
 }
 
 .hud-actions-bottom {
@@ -236,7 +307,7 @@ body {
 
 .toast {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 12px) + 92px);
+  top: calc(env(safe-area-inset-top, 12px) + 128px);
   left: 50%;
   transform: translateX(-50%) translateY(-8px);
   z-index: 40;
@@ -278,58 +349,104 @@ body {
   display: none;
 }
 
+.overlay-lock {
+  background: rgba(10, 6, 16, 0.55);
+  /* Keeps the card clear of the iOS keyboard and the home indicator. */
+  align-items: safe center;
+  overflow-y: auto;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+}
+
 .lock-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   background: linear-gradient(
     160deg,
-    rgba(42, 24, 58, 0.94) 0%,
-    rgba(22, 13, 31, 0.96) 100%
+    rgba(42, 24, 58, 0.92) 0%,
+    rgba(22, 13, 31, 0.95) 100%
   );
-  border: 1px solid rgba(255, 218, 148, 0.35);
-  border-radius: 26px;
-  padding: 28px 24px;
+  border: 1px solid rgba(255, 218, 148, 0.3);
+  border-radius: 28px;
+  padding: 30px 24px 24px;
   text-align: center;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
 }
 
-.lock-emblem {
-  font-size: 2.3rem;
-  margin-bottom: 8px;
+.lock-card.is-shaking {
+  animation: lockShake 0.42s ease;
+}
+
+.lock-emblem,
+.wake-emblem {
+  display: inline-flex;
+  color: var(--gold);
+  filter: drop-shadow(0 0 14px rgba(255, 212, 121, 0.55));
+}
+
+.lock-emblem svg {
+  animation: emblemFloat 4.5s ease-in-out infinite;
+}
+
+.lock-kicker {
+  margin: 10px 0 2px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rose);
 }
 
 .lock-title {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: 1.7rem;
+  font-size: 1.85rem;
+  font-weight: 600;
+  line-height: 1.15;
   color: var(--gold-soft);
 }
 
 .lock-subtitle {
-  margin: 6px 0 16px;
-  font-size: 0.92rem;
+  margin: 10px 0 20px;
+  font-size: 0.94rem;
   line-height: 1.5;
-  color: rgba(252, 245, 232, 0.84);
+  color: rgba(252, 245, 232, 0.82);
+  text-wrap: balance;
 }
 
 .lock-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+
+.lock-label {
+  text-wrap: balance;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--gold-soft);
 }
 
 .lock-input {
   width: 100%;
-  min-height: 48px;
-  border-radius: 14px;
+  min-height: 50px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 224, 170, 0.35);
   background: rgba(12, 7, 18, 0.65);
   color: var(--cream);
-  font-size: 1.05rem;
+  font-family: var(--font-serif);
+  /* At least 16px so iOS Safari does not zoom into the field. */
+  font-size: 1.15rem;
   text-align: center;
-  letter-spacing: 0.08em;
   padding: 10px 14px;
   outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.lock-input::placeholder {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: rgba(252, 245, 232, 0.42);
 }
 
 .lock-input:focus {
@@ -338,17 +455,61 @@ body {
 }
 
 .lock-error {
+  text-wrap: balance;
   min-height: 20px;
   margin: 0;
   font-size: 0.84rem;
   color: #ffaaa5;
 }
 
+.lock-form .btn-primary {
+  flex: none;
+}
+
 .lock-footnote {
-  margin: 12px 0 0;
-  font-size: 0.76rem;
-  color: rgba(252, 245, 232, 0.6);
-  line-height: 1.4;
+  margin: 16px 0 0;
+  font-size: 0.78rem;
+  color: rgba(252, 245, 232, 0.58);
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+/* Tap-to-wake veil shown on return visits */
+.wake-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  border: 0;
+  background: rgba(10, 6, 16, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--cream);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  animation: fadeIn 0.3s ease;
+}
+
+.wake-veil.is-hidden {
+  display: none;
+}
+
+.wake-title {
+  font-family: var(--font-serif);
+  font-size: 1.85rem;
+  font-weight: 600;
+  color: var(--gold-soft);
+}
+
+.wake-hint {
+  font-size: 0.95rem;
+  color: rgba(252, 245, 232, 0.8);
+  animation: hintBreath 2.4s ease-in-out infinite;
 }
 
 /* Modal Card */
@@ -436,10 +597,17 @@ body {
 
 .card-message {
   margin: 0;
-  font-size: 0.98rem;
+  font-size: 1rem;
   line-height: 1.62;
   white-space: pre-line;
   color: #36252c;
+}
+
+.card-paper.is-letter .card-message {
+  font-family: var(--font-serif);
+  font-size: 1.04rem;
+  /* Matches the 32px ruled lines of the letter paper. */
+  line-height: 32px;
 }
 
 /* Type 1: Polaroid */
@@ -808,5 +976,63 @@ body {
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes lockShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-9px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-6px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes emblemFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(2deg);
+  }
+}
+
+@keyframes dotPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes hintBreath {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lock-emblem svg,
+  .star-dot.is-today,
+  .wake-hint,
+  .lock-card.is-shaking {
+    animation: none;
   }
 }

@@ -5,79 +5,144 @@ interface PermissionCapableEvent {
 }
 
 export interface MotionCallbacks {
-  readonly onShake: (impulse: Vec3) => void;
-  readonly onGravityChange: (gravity: Vec3) => void;
+  /** Unit vector pointing "down" in screen space (x right, y up, z toward the viewer). */
+  readonly onGravityDirection: (direction: Vec3) => void;
+  /** Linear device acceleration in screen space (m/s^2, gravity removed). */
+  readonly onLinearAcceleration: (acceleration: Vec3) => void;
+  /** Rotation rate around the screen's vertical axis in rad/s (twisting the jar). */
+  readonly onTwist: (radiansPerSecond: number) => void;
+  /** A distinct shake was detected; strength is normalized to 0..1. */
+  readonly onShake: (strength: number) => void;
+  /** Fired once when the first real sensor reading arrives. */
+  readonly onSensorsLive?: () => void;
 }
+
+const DEG_TO_RAD = Math.PI / 180;
+const SHAKE_THRESHOLD = 11; // m/s^2 of linear acceleration
+const SHAKE_FULL_STRENGTH = 30; // m/s^2 that maps to strength 1
+const SHAKE_REFRACTORY_MS = 220;
+const ACCELERATION_DEAD_ZONE = 0.6; // m/s^2, hides sensor noise while resting
+const STALE_MOTION_MS = 250;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
 /**
- * Handles iOS DeviceMotion / DeviceOrientation permission requests, tilt gravity,
- * shake detection, and manual shake triggers for macOS or denied permissions.
+ * Rotates a device-frame vector into the screen frame for the current screen rotation.
+ */
+export function rotateToScreenFrame(vector: Vec3, screenAngleDeg: number): Vec3 {
+  const angle = screenAngleDeg * DEG_TO_RAD;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return {
+    x: vector.x * cos - vector.y * sin,
+    y: vector.x * sin + vector.y * cos,
+    z: vector.z,
+  };
+}
+
+/**
+ * Converts DeviceOrientation angles into the direction of gravity as seen on screen.
+ * Derived from the W3C Z-X'-Y'' convention, so it behaves the same on iOS and Android
+ * (unlike `accelerationIncludingGravity`, whose sign differs between platforms).
+ */
+export function gravityDirectionFromOrientation(
+  betaDeg: number,
+  gammaDeg: number,
+  screenAngleDeg = 0
+): Vec3 {
+  const beta = betaDeg * DEG_TO_RAD;
+  const gamma = gammaDeg * DEG_TO_RAD;
+  const deviceFrame: Vec3 = {
+    x: Math.cos(beta) * Math.sin(gamma),
+    y: -Math.sin(beta),
+    z: -Math.cos(beta) * Math.cos(gamma),
+  };
+  return rotateToScreenFrame(deviceFrame, screenAngleDeg);
+}
+
+/**
+ * Maps a linear acceleration magnitude (m/s^2) to a shake strength, or 0 below the threshold.
+ */
+export function shakeStrengthFromAcceleration(magnitude: number): number {
+  if (magnitude < SHAKE_THRESHOLD) {
+    return 0;
+  }
+  return clamp(
+    (magnitude - SHAKE_THRESHOLD) / (SHAKE_FULL_STRENGTH - SHAKE_THRESHOLD),
+    0.15,
+    1
+  );
+}
+
+function readScreenAngle(): number {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+  const modern = window.screen?.orientation?.angle;
+  if (typeof modern === "number") {
+    return modern;
+  }
+  const legacy = (window as unknown as { orientation?: number }).orientation;
+  return typeof legacy === "number" ? legacy : 0;
+}
+
+/**
+ * Turns the phone's motion sensors into jar physics input:
+ * gravity follows the real "down", the accelerometer shoves the stars around,
+ * the gyroscope swirls them, and distinct shakes are reported separately.
+ * Handles the iOS permission prompt and offers a manual shake for devices without sensors.
  */
 export class MotionController {
   private readonly callbacks: MotionCallbacks;
   private isListening = false;
-  private hasMotionAccess = false;
-  private hasRequestedPermission = false;
+  private permissionGranted = false;
+  private sensorsLive = false;
   private lastShakeTimestampMs = 0;
-  private lastTotalAccel: Vec3 | null = null;
+  private lastMotionTimestampMs = 0;
+  private staleTimerId: number | null = null;
 
   constructor(callbacks: MotionCallbacks) {
     this.callbacks = callbacks;
   }
 
-  public hasSensorAccess(): boolean {
-    return this.hasMotionAccess;
+  /** True once real sensor readings have arrived (iPhone yes, Mac no). */
+  public hasLiveSensors(): boolean {
+    return this.sensorsLive;
   }
 
   /**
-   * Must be called inside a user gesture handler to satisfy iOS 13+ permission prompts.
+   * Must be called synchronously inside a user gesture handler (click / touchend).
+   * iOS shows its permission prompt once per app launch; later calls resolve silently.
    */
   public async requestPermissionsFromUserGesture(): Promise<boolean> {
     if (typeof window === "undefined") {
       return false;
     }
-    if (this.hasRequestedPermission) {
-      return this.hasMotionAccess;
+    if (this.permissionGranted) {
+      return true;
     }
-    this.hasRequestedPermission = true;
 
-    let granted = true;
-
-    try {
-      const motionEvent = window.DeviceMotionEvent as unknown as
-        | PermissionCapableEvent
-        | undefined;
-      if (motionEvent && typeof motionEvent.requestPermission === "function") {
-        const result = await motionEvent.requestPermission();
-        if (result !== "granted") {
-          granted = false;
+    // Both requests are started before the first await so they share the user activation.
+    const requests = [window.DeviceMotionEvent, window.DeviceOrientationEvent].map(
+      (eventClass) => {
+        const candidate = eventClass as unknown as
+          | PermissionCapableEvent
+          | undefined;
+        if (candidate && typeof candidate.requestPermission === "function") {
+          return candidate.requestPermission().catch(() => "denied" as const);
         }
+        return Promise.resolve("granted" as const);
       }
-    } catch {
-      granted = false;
-    }
+    );
 
-    try {
-      const orientationEvent = window.DeviceOrientationEvent as unknown as
-        | PermissionCapableEvent
-        | undefined;
-      if (
-        orientationEvent &&
-        typeof orientationEvent.requestPermission === "function"
-      ) {
-        await orientationEvent.requestPermission();
-      }
-    } catch {
-      // Orientation permission is optional; shake / manual fallback still works.
+    const results = await Promise.all(requests);
+    this.permissionGranted = results.every((result) => result === "granted");
+    if (this.permissionGranted) {
+      this.startListening();
     }
-
-    this.hasMotionAccess = granted;
-    this.startListening();
-    return granted;
+    return this.permissionGranted;
   }
 
   public startListening(): void {
@@ -88,18 +153,14 @@ export class MotionController {
     this.isListening = true;
     window.addEventListener("devicemotion", this.handleDeviceMotion);
     window.addEventListener("deviceorientation", this.handleDeviceOrientation);
+    this.staleTimerId = window.setInterval(this.resetStaleMotion, STALE_MOTION_MS);
   }
 
   /**
-   * Triggers a realistic swirling shake impulse manually (for Mac or button click).
+   * Reports a shake without sensors (Mac, denied permission, or the shake button).
    */
   public triggerManualShake(strength = 1.0): void {
-    const angle = Math.random() * Math.PI * 2;
-    this.callbacks.onShake({
-      x: Math.cos(angle) * 2.2 * strength,
-      y: 3.4 * strength,
-      z: Math.sin(angle) * 2.2 * strength,
-    });
+    this.callbacks.onShake(clamp(strength, 0, 1));
   }
 
   public dispose(): void {
@@ -111,87 +172,85 @@ export class MotionController {
       "deviceorientation",
       this.handleDeviceOrientation
     );
+    if (this.staleTimerId !== null) {
+      window.clearInterval(this.staleTimerId);
+      this.staleTimerId = null;
+    }
     this.isListening = false;
   }
+
+  private markSensorsLive(): void {
+    if (this.sensorsLive) {
+      return;
+    }
+    this.sensorsLive = true;
+    this.callbacks.onSensorsLive?.();
+  }
+
+  /** Clears inertia and twist when motion events stop (app in background, sensor paused). */
+  private readonly resetStaleMotion = (): void => {
+    if (
+      this.lastMotionTimestampMs > 0 &&
+      performance.now() - this.lastMotionTimestampMs > STALE_MOTION_MS
+    ) {
+      this.lastMotionTimestampMs = 0;
+      this.callbacks.onLinearAcceleration({ x: 0, y: 0, z: 0 });
+      this.callbacks.onTwist(0);
+    }
+  };
 
   private readonly handleDeviceOrientation = (
     event: DeviceOrientationEvent
   ): void => {
-    if (event.gamma === null && event.beta === null) {
+    // Desktop browsers fire a single event with null angles; ignore it.
+    if (event.beta === null || event.gamma === null) {
       return;
     }
 
-    const gamma = clamp(event.gamma ?? 0, -45, 45);
-    const betaOffset = clamp((event.beta ?? 45) - 45, -45, 45);
-
-    const gx = (gamma / 45) * 3.2;
-    const gz = (betaOffset / 45) * 2.1;
-    const gy = -4.2;
-
-    this.callbacks.onGravityChange({ x: gx, y: gy, z: gz });
+    this.markSensorsLive();
+    this.callbacks.onGravityDirection(
+      gravityDirectionFromOrientation(event.beta, event.gamma, readScreenAngle())
+    );
   };
 
   private readonly handleDeviceMotion = (event: DeviceMotionEvent): void => {
+    const screenAngle = readScreenAngle();
     const nowMs = performance.now();
-    if (nowMs - this.lastShakeTimestampMs < 180) {
-      return;
-    }
 
     const linear = event.acceleration;
-    if (
-      linear &&
-      linear.x !== null &&
-      linear.y !== null &&
-      linear.z !== null
-    ) {
-      const mag = Math.sqrt(
-        linear.x * linear.x + linear.y * linear.y + linear.z * linear.z
+    if (linear && linear.x !== null && linear.y !== null && linear.z !== null) {
+      this.lastMotionTimestampMs = nowMs;
+      const magnitude = Math.hypot(linear.x, linear.y, linear.z);
+
+      if (magnitude < ACCELERATION_DEAD_ZONE) {
+        this.callbacks.onLinearAcceleration({ x: 0, y: 0, z: 0 });
+      } else {
+        this.callbacks.onLinearAcceleration(
+          rotateToScreenFrame(
+            { x: linear.x, y: linear.y, z: linear.z },
+            screenAngle
+          )
+        );
+      }
+
+      const strength = shakeStrengthFromAcceleration(magnitude);
+      if (
+        strength > 0 &&
+        nowMs - this.lastShakeTimestampMs > SHAKE_REFRACTORY_MS
+      ) {
+        this.lastShakeTimestampMs = nowMs;
+        this.callbacks.onShake(strength);
+      }
+    }
+
+    const rate = event.rotationRate;
+    if (rate && rate.beta !== null && rate.gamma !== null) {
+      // rotationRate: beta is around the device x axis, gamma around y, alpha around z (deg/s).
+      const screenRate = rotateToScreenFrame(
+        { x: rate.beta, y: rate.gamma, z: rate.alpha ?? 0 },
+        screenAngle
       );
-      if (mag > 12.5) {
-        this.lastShakeTimestampMs = nowMs;
-        const scale = clamp(mag / 18, 0.7, 1.5);
-        this.callbacks.onShake({
-          x: clamp(linear.x * 0.22, -3.5, 3.5),
-          y: 2.8 * scale,
-          z: clamp(linear.z * 0.22, -3.5, 3.5),
-        });
-      }
-      return;
+      this.callbacks.onTwist(screenRate.y * DEG_TO_RAD);
     }
-
-    const withGravity = event.accelerationIncludingGravity;
-    if (
-      !withGravity ||
-      withGravity.x === null ||
-      withGravity.y === null ||
-      withGravity.z === null
-    ) {
-      return;
-    }
-
-    const current: Vec3 = {
-      x: withGravity.x,
-      y: withGravity.y,
-      z: withGravity.z,
-    };
-
-    if (this.lastTotalAccel) {
-      const dx = current.x - this.lastTotalAccel.x;
-      const dy = current.y - this.lastTotalAccel.y;
-      const dz = current.z - this.lastTotalAccel.z;
-      const delta = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (delta > 11.5) {
-        this.lastShakeTimestampMs = nowMs;
-        const scale = clamp(delta / 16, 0.7, 1.45);
-        this.callbacks.onShake({
-          x: clamp(dx * 0.18, -3.2, 3.2),
-          y: 2.6 * scale,
-          z: clamp(dz * 0.18, -3.2, 3.2),
-        });
-      }
-    }
-
-    this.lastTotalAccel = current;
   };
 }

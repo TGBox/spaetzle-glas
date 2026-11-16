@@ -4,11 +4,23 @@ Eine für iPhone (iOS Safari / Homescreen-PWA) und Mac optimierte WebGL-PWA mit 
 
 ## Features
 
-- **Jubiläums-Schloss:** Einstieg über euer Jubiläumsdatum (`01.12.2021`), das zugleich Audio & iOS-Bewegungssensoren freischaltet.
-- **24 Origami-Sterne im Glas:** Eigene, leichte 3D-Physik mit iPhone-Schüttelerkennung (`DeviceMotionEvent`), Neigungs-Schwerkraft (`DeviceOrientationEvent`) sowie Maus-/Touch-Interaktion am Mac.
+- **Kosename-Schloss:** Einstieg über ihren Kosenamen für dich (`JAR_PASSWORDS` in `src/data/adventDays.ts`, Groß-/Kleinschreibung egal). Das Feld verrät die Lösung nicht; der Tipp auf „Glas öffnen“ schaltet zugleich Audio & iOS-Bewegungssensoren frei. Bei späteren Besuchen genügt ein Tipp auf „Glas aufwecken“.
+- **24 Origami-Sterne im Glas:** Eigene, leichte 3D-Physik. Auf dem iPhone verhält sich das Glas wie ein echtes Glas in der Hand (siehe „Sensor-Interaktion“), am Mac per Maus/Trackpad.
 - **Prozedurales Windspiel:** Pentatonische Klänge (D-Dur-Pentatonik) bei Kollisionen, Öffnungs-Akkorde und Stempel-Effekte direkt über die Web Audio API.
 - **5 Karten-Formate:** Polaroid-Erinnerung, Liebesbrief, abstempelbarer Gutschein, Kompliment-Funke und Audio-/Video-Erinnerung (`media`).
 - **Sternbild & Heiligabend-Finale:** Geöffnete Sterne verbinden sich mit goldenen Lichtfäden; ab dem 24. Türchen startet der Schneekugel-Modus.
+
+## Sensor-Interaktion (iPhone)
+
+| Sensor | Was passiert |
+| --- | --- |
+| Lage (`DeviceOrientationEvent`) | Die Schwerkraft im Glas zeigt immer nach „echt unten“: kippen lässt die Sterne rutschen, kopfüber fallen sie an den Korken, flach auf dem Tisch legen sie sich an die Rückwand. Leichtes Neigen dreht außerdem den Blick ums Glas (Parallaxe). |
+| Beschleunigung (`DeviceMotionEvent.acceleration`) | Jede Bewegung schubst die Sterne (Trägheit), nicht erst ab einer Schüttel-Schwelle. Beim Tragen klimpert das Glas leise. |
+| Gyroskop (`rotationRate`) | Dreht sie das iPhone um die Hochachse, bleiben die Sterne kurz zurück und wirbeln im Glas. |
+| Schütteln | Weckt den heutigen Stern: Er leuchtet mit jedem Schütteln heller, die Töne steigen an, dann öffnet er sich von selbst. Antippen geht weiterhin. |
+| Touch | Finger durchs Glas ziehen rührt die Sterne um, ziehen dreht das Glas, aufs Glas tippen „klopft“ und lässt nahe Sterne hüpfen. |
+
+Am Mac (ohne Sensoren) übernehmen Maus/Trackpad das Umrühren, Drehen und Klopfen; der Button „Schütteln“ ersetzt das Schütteln und verschwindet, sobald echte Sensordaten ankommen. Zusätzlich: leichtes haptisches Feedback bei Taps (wo der Browser es erlaubt) und ein Wake-Lock, damit das Display beim Schütteln nicht ausgeht.
 
 ## Inhalte anpassen (vor dem 1. Dezember)
 

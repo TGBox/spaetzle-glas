@@ -65,4 +65,60 @@ describe("StarPhysicsWorld", () => {
       expect(dist).toBeLessThan(0.32);
     }
   });
+
+  it("lets the pile follow gravity in any direction, e.g. onto the lid when held upside down", () => {
+    const world = new StarPhysicsWorld();
+
+    for (let stepIdx = 0; stepIdx < 360; stepIdx++) {
+      world.step(1 / 60, { x: 0, y: 5.2, z: 0 }, 0, null);
+    }
+
+    const averageY =
+      world.bodies.reduce((sum, body) => sum + body.position.y, 0) /
+      world.bodies.length;
+    expect(averageY).toBeGreaterThan(0.6);
+  });
+
+  it("keeps today's star hovering even when gravity points sideways", () => {
+    const world = new StarPhysicsWorld();
+
+    for (let stepIdx = 0; stepIdx < 360; stepIdx++) {
+      world.step(1 / 60, { x: 5.2, y: 0, z: 0 }, 0, 12);
+    }
+
+    const today = world.bodies[11];
+    expect(today.position.y).toBeGreaterThan(0.2);
+  });
+
+  it("swirls stars against the jar's spin and pushes them away from a knock", () => {
+    const world = new StarPhysicsWorld();
+    const body = world.bodies[5];
+    const before = { ...body.velocity };
+
+    world.applySwirl(2);
+    expect(body.velocity.x - before.x).toBeCloseTo(-2 * body.position.z, 6);
+    expect(body.velocity.z - before.z).toBeCloseTo(2 * body.position.x, 6);
+
+    const speedBefore = Math.hypot(body.velocity.x, body.velocity.y, body.velocity.z);
+    world.applyKnock(
+      { x: body.position.x + 0.3, y: body.position.y, z: body.position.z },
+      1
+    );
+    expect(body.velocity.x).toBeLessThan(before.x - 2 * body.position.z);
+    expect(
+      Math.hypot(body.velocity.x, body.velocity.y, body.velocity.z)
+    ).not.toBe(speedBefore);
+  });
+
+  it("nudges a single star without touching the others", () => {
+    const world = new StarPhysicsWorld();
+    const otherBefore = { ...world.bodies[0].velocity };
+    const targetBefore = { ...world.bodies[6].velocity };
+
+    world.nudgeBody(7, { x: 1, y: 2, z: -1 });
+
+    expect(world.bodies[6].velocity.x).toBeCloseTo(targetBefore.x + 1, 6);
+    expect(world.bodies[6].velocity.y).toBeCloseTo(targetBefore.y + 2, 6);
+    expect(world.bodies[0].velocity).toEqual(otherBefore);
+  });
 });

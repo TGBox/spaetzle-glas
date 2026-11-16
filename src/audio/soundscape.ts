@@ -205,6 +205,40 @@ export class SoundscapeController {
     this.playBellTone(1174.66, now + 0.17, 1.2, 0.16);
   }
 
+  /**
+   * Plays a rising scale note while today's star is being shaken awake (progress 0..1).
+   */
+  public playChargeStep(progress: number): void {
+    if (this.muted || !this.ctx || !this.masterGain) {
+      return;
+    }
+
+    const lastIndex = PENTATONIC_FREQUENCIES.length - 1;
+    const index = Math.max(
+      0,
+      Math.min(lastIndex, Math.round(progress * lastIndex))
+    );
+    this.playBellTone(
+      PENTATONIC_FREQUENCIES[index],
+      this.ctx.currentTime,
+      0.7,
+      0.1 + progress * 0.06
+    );
+  }
+
+  /**
+   * Plays a short, bright "tink" when knocking on the glass.
+   */
+  public playGlassKnock(): void {
+    if (this.muted || !this.ctx || !this.masterGain) {
+      return;
+    }
+
+    const now = this.ctx.currentTime;
+    this.playBellTone(2349.32, now, 0.28, 0.07);
+    this.playBellTone(1760.0, now + 0.012, 0.4, 0.05);
+  }
+
   private playBellTone(
     frequency: number,
     startTime: number,

@@ -1,18 +1,11 @@
 import type { AdventDay } from "../types/advent";
 
 /**
- * Valid anniversary passcodes to unlock the jar on the first visit.
- * Accepts common German date formats for December 1, 2021, plus "5" as fallback hint.
+ * Passwords that unlock the jar on the first visit: her pet name for you.
+ * Compared case-insensitively with whitespace ignored. The second entry only
+ * forgives the pasta spelling with a double "l".
  */
-export const ANNIVERSARY_CODES: readonly string[] = [
-  "01.12.2021",
-  "01122021",
-  "01.12.",
-  "0112",
-  "1.12.2021",
-  "1.12.",
-  "5",
-];
+export const JAR_PASSWORDS: readonly string[] = ["Fusili", "Fusilli"];
 
 /**
  * All 24 advent calendar entries for December 1 through December 24.
