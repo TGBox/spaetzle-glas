@@ -1,4 +1,9 @@
-export type CardType = "polaroid" | "letter" | "voucher" | "compliment";
+export type CardType =
+  | "polaroid"
+  | "letter"
+  | "voucher"
+  | "compliment"
+  | "media";
 
 export type StarVisualState =
   | "locked"
@@ -17,6 +22,10 @@ export interface AdventDay {
   readonly photoCaption?: string;
   readonly voucherCode?: string;
   readonly complimentHighlight?: string;
+  readonly audioUrl?: string;
+  readonly videoUrl?: string;
+  readonly videoPosterUrl?: string;
+  readonly mediaCaption?: string;
 }
 
 export interface PersistedAppState {

@@ -9,7 +9,7 @@ describe("ADVENT_DAYS dataset integrity", () => {
     expect(days).toEqual(Array.from({ length: 24 }, (_, idx) => idx + 1));
   });
 
-  it("covers all four card formats with non-empty German content", () => {
+  it("covers all five card formats with non-empty German content", () => {
     const seenTypes = new Set<CardType>();
 
     for (const entry of ADVENT_DAYS) {
@@ -24,10 +24,13 @@ describe("ADVENT_DAYS dataset integrity", () => {
       if (entry.type === "compliment") {
         expect(entry.complimentHighlight?.trim().length).toBeGreaterThan(0);
       }
+      if (entry.type === "media") {
+        expect(entry.mediaCaption?.trim().length).toBeGreaterThan(0);
+      }
     }
 
     expect(seenTypes).toEqual(
-      new Set<CardType>(["polaroid", "letter", "voucher", "compliment"])
+      new Set<CardType>(["polaroid", "letter", "voucher", "compliment", "media"])
     );
   });
 });

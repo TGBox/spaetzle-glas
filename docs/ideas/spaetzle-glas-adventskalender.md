@@ -16,14 +16,15 @@ Im Glas liegen 24 Origami-Sterne (nummeriert von 1 bis 24) mit einer leichtgewic
 - **Bereits geöffnete Tage:** Leuchten dauerhaft warm-bernsteinfarben im Glas und sind durch feine goldene Lichtfäden miteinander verbunden (Richtung A), sodass das Glas bis Weihnachten immer heller strahlt.
 - **Schüttel-Interaktion:** Schüttelt sie das iPhone (oder wischt/klickt am Mac), wirbeln die Sterne im Glas durcheinander und erzeugen bei Kollisionen sanfte, pentatonische Windspiel-Klänge, die harmonisch nie schief klingen können.
 
-## Die 4 Karten-Formate beim Öffnen
+## Die 5 Karten-Formate beim Öffnen
 
-Jeder der 24 Tage wird in einer typsicheren TypeScript-Datei definiert und nutzt eines von vier edlen Papier-Layouts:
+Jeder der 24 Tage wird in einer typsicheren TypeScript-Datei definiert und nutzt eines von fünf edlen Papier-/Bühnen-Layouts:
 
 1. **Polaroid-Erinnerung:** Gemeinsames Foto aus den 5 Jahren + Datum/Ort + persönliche Notiz.
 2. **Liebesbrief / Insider:** Strukturiertes Briefpapier für längere Erinnerungen oder Insider-Witze.
 3. **Interaktiver Gutschein:** Ticket-Design mit „Einlösen“-Button, der lokal einen Herz-Stempel („Eingelöst am ...“) auf das Ticket setzt.
 4. **Kompliment-Funke:** Kurze, strahlende Botschaft mit besonderem Partikel-Schauer im Hintergrund.
+5. **Audio- & Video-Erinnerung (`media`):** Inline-Video-Player (`playsinline` für iOS Safari) und/oder Sprachnachricht-/Musik-Audio-Player mit Klangwellen-Optik.
 
 ## Heiligabend-Finale & Galerie (ab 24. Dezember)
 
@@ -42,7 +43,7 @@ Sobald alle 24 Sterne erwacht sind, schaltet das Glas den **Schneekugel-Modus** 
   - 3D-Glas mit 24 nummerierten Origami-Sternen (4 visuelle Zustände: verschlossen, heute, vergangen-offenbar, geöffnet)
   - Eigene Impuls-/Sphären-Physik im Glas (iPhone-Accelerometer + Maus/Touch-Wischen am Mac)
   - Prozeduraler Web-Audio-Synthesizer (Pentatonisches Windspiel bei Kollision + Öffnungs-Akkord + Stummschalter)
-  - 4 Karten-Komponenten (Polaroid, Brief, Gutschein mit Stempel, Kompliment) + Erinnerungs-Galerie
+  - 5 Karten-Komponenten (Polaroid, Brief, Gutschein mit Stempel, Kompliment, Audio/Video) + Erinnerungs-Galerie
   - Heiligabend-Schneekugel-Effekt & Sternbild-Verbindungen
   - PWA-Manifest & iOS-Homescreen-Icons („Für mein Spätzle“)
   - Geheimer Vorschau-/Testmodus zum Prüfen aller 24 Tage

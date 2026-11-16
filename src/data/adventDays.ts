@@ -22,6 +22,9 @@ export const ANNIVERSARY_CODES: readonly string[] = [
  * 2. To display a real photo on a "polaroid" card, copy your image into `public/photos/`
  *    (for example `public/photos/tag-02.jpg`) and set `photoUrl: "./photos/tag-02.jpg"`.
  *    If `photoUrl` is omitted, a warm custom-illustrated Polaroid scene is rendered instead.
+ * 3. To embed audio (`.mp3`, `.m4a`) and/or video (`.mp4`, `.mov`) on a "media" card,
+ *    copy your files into `public/media/` (for example `public/media/tag-10.m4a` or
+ *    `public/media/tag-15.mp4`) and set `audioUrl`, `videoUrl`, and optionally `videoPosterUrl`.
  */
 export const ADVENT_DAYS: readonly AdventDay[] = [
   {
@@ -119,10 +122,12 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
   },
   {
     day: 10,
-    title: "Die Sache mit den kleinen Insidern",
-    subtitle: "Aus dem Archiv",
-    type: "letter",
+    title: "Unsere kleinen Insider zum Anhören",
+    subtitle: "Sprachnachricht & Erinnerung",
+    type: "media",
     yearBadge: "Jahr 3 • 2023/24",
+    // audioUrl: "./media/tag-10.m4a",
+    mediaCaption: "Ein kleiner Ton-Gruß direkt aus unserem Archiv",
     message:
       "In fünf Jahren hat sich bei uns ein ganz eigenes Wörterbuch angesammelt — Blicke quer durch den Raum, halbe Sätze, bei denen wir sofort losprusten, und Rituale, die niemand sonst versteht.\n\nGenau diese Sprache zwischen uns möchte ich für nichts auf der Welt eintauschen.",
   },
@@ -171,9 +176,12 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
   {
     day: 15,
     title: "Warum ich dich im Team unschlagbar finde",
-    subtitle: "Gedanke aus Jahr 4",
-    type: "letter",
+    subtitle: "Video-Moment aus Jahr 4",
+    type: "media",
     yearBadge: "Jahr 4 • 2024/25",
+    // videoUrl: "./media/tag-15.mp4",
+    // videoPosterUrl: "./photos/tag-15-poster.jpg",
+    mediaCaption: "Unser Lieblingsschnipsel in Bewegung",
     message:
       "In den letzten Jahren haben wir nicht nur schöne Tage gefeiert, sondern auch stressige Phasen gemeinsam weggesteckt.\n\nIch bewundere jedes Mal aufs Neue, wie ruhig, klug und warmherzig du an Dinge herangehst — und wie wir zusammen einfach funktionieren.",
   },

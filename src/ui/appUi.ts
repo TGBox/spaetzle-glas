@@ -37,7 +37,42 @@ function getCardTypeIcon(type: CardType): string {
       return "🎟️";
     case "compliment":
       return "✨";
+    case "media":
+      return "🎬";
   }
+}
+
+function createMediaFallbackMarkup(
+  kind: "video" | "audio",
+  missingUrl?: string
+): string {
+  const icon = kind === "video" ? "🎬" : "🎧";
+  const label =
+    kind === "video"
+      ? "Video-Erinnerung bereit für deinen Clip"
+      : "Sprachnachricht / Audio bereit für deine Datei";
+  const hint = missingUrl
+    ? `Datei nicht gefunden: ${escapeHtml(missingUrl)}`
+    : "Lege deine Audio- oder Video-Datei in public/media/ ab";
+
+  return `
+    <div class="card-media-placeholder">
+      <div class="card-media-placeholder-icon">${icon}</div>
+      <div class="card-media-placeholder-title">${label}</div>
+      <div class="card-media-placeholder-hint">${hint}</div>
+    </div>
+  `;
+}
+
+function createAudioVisualizerMarkup(): string {
+  const barHeights = [34, 62, 48, 86, 54, 92, 68, 42, 78, 52, 64, 38];
+  const bars = barHeights
+    .map(
+      (height, idx) =>
+        `<span class="audio-bar" style="height:${height}%;animation-delay:${(idx * 0.08).toFixed(2)}s"></span>`
+    )
+    .join("");
+  return `<div class="card-audio-visualizer" aria-hidden="true">${bars}</div>`;
 }
 
 function createPolaroidFallbackSvg(day: number, title: string): string {
@@ -71,7 +106,7 @@ function createPolaroidFallbackSvg(day: number, title: string): string {
 }
 
 /**
- * Manages the HTML/CSS HUD, anniversary lockscreen, 4 memory card layouts,
+ * Manages the HTML/CSS HUD, anniversary lockscreen, 5 memory card layouts,
  * and the 24-moment gallery overlay.
  */
 export class AppUi {
@@ -360,11 +395,22 @@ export class AppUi {
   }
 
   public closeCardModal(): void {
+    this.stopActiveMedia();
     this.currentModalDay = null;
     this.cardOverlay.classList.add("is-hidden");
   }
 
+  private stopActiveMedia(): void {
+    this.cardContainer
+      .querySelectorAll<HTMLMediaElement>("audio, video")
+      .forEach((mediaEl) => {
+        mediaEl.pause();
+      });
+  }
+
   private renderCardContent(day: AdventDay, state: PersistedAppState): void {
+    this.stopActiveMedia();
+
     const typeClass =
       day.type === "letter"
         ? "is-letter"
@@ -372,7 +418,9 @@ export class AppUi {
           ? "is-voucher"
           : day.type === "compliment"
             ? "is-compliment"
-            : "is-polaroid";
+            : day.type === "media"
+              ? "is-media"
+              : "is-polaroid";
 
     const subtitleHtml = day.subtitle
       ? `<p class="card-subtitle">${escapeHtml(day.subtitle)}</p>`
@@ -411,6 +459,54 @@ export class AppUi {
         <p class="card-message">${escapeHtml(day.message)}</p>
         ${codeHtml}
         <div class="voucher-actions">${actionHtml}</div>
+      `;
+    } else if (day.type === "media") {
+      const videoBlock = day.videoUrl
+        ? `
+          <div class="card-video-box js-video-box">
+            <video
+              class="card-video-player js-media-video"
+              src="${escapeHtml(day.videoUrl)}"
+              ${day.videoPosterUrl ? `poster="${escapeHtml(day.videoPosterUrl)}"` : ""}
+              controls
+              playsinline
+              preload="metadata"
+            ></video>
+          </div>
+        `
+        : "";
+
+      const audioBlock = day.audioUrl
+        ? `
+          <div class="card-audio-box js-audio-box">
+            ${createAudioVisualizerMarkup()}
+            <audio
+              class="card-audio-player js-media-audio"
+              src="${escapeHtml(day.audioUrl)}"
+              controls
+              preload="metadata"
+            ></audio>
+          </div>
+        `
+        : "";
+
+      const mediaItemsHtml =
+        videoBlock || audioBlock
+          ? `${videoBlock}${audioBlock}`
+          : createMediaFallbackMarkup(
+              day.subtitle?.toLowerCase().includes("video") ? "video" : "audio"
+            );
+
+      const captionHtml = day.mediaCaption
+        ? `<p class="card-media-caption">${escapeHtml(day.mediaCaption)}</p>`
+        : "";
+
+      bodySpecificHtml = `
+        <div class="card-media-stage">
+          ${mediaItemsHtml}
+          ${captionHtml}
+        </div>
+        <p class="card-message">${escapeHtml(day.message)}</p>
       `;
     } else {
       const highlight = day.complimentHighlight ?? day.title;
@@ -452,6 +548,28 @@ export class AppUi {
           this.cardContainer.querySelector(".js-polaroid-media");
         if (mediaBox) {
           mediaBox.innerHTML = createPolaroidFallbackSvg(day.day, day.title);
+        }
+      });
+    }
+
+    const videoPlayer =
+      this.cardContainer.querySelector<HTMLVideoElement>(".js-media-video");
+    if (videoPlayer) {
+      videoPlayer.addEventListener("error", () => {
+        const videoBox = this.cardContainer.querySelector(".js-video-box");
+        if (videoBox) {
+          videoBox.innerHTML = createMediaFallbackMarkup("video", day.videoUrl);
+        }
+      });
+    }
+
+    const audioPlayer =
+      this.cardContainer.querySelector<HTMLAudioElement>(".js-media-audio");
+    if (audioPlayer) {
+      audioPlayer.addEventListener("error", () => {
+        const audioBox = this.cardContainer.querySelector(".js-audio-box");
+        if (audioBox) {
+          audioBox.innerHTML = createMediaFallbackMarkup("audio", day.audioUrl);
         }
       });
     }
