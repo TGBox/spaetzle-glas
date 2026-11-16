@@ -1,8 +1,0 @@
-import { describe, it, expect } from "vitest";
-import { greet } from "../src/index";
-
-describe("greet", () => {
-  it("should return greeting with project name", () => {
-    expect(greet("World")).toBe("Hello, World! Welcome to spaetzle-glas.");
-  });
-});

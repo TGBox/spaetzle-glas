@@ -1,0 +1,20 @@
+{
+  "name": "Für mein Spätzle — Advents-Glas",
+  "short_name": "Spätzle-Glas",
+  "description": "Unser magisches 3D-Adventskalender-Glas zum 5-jährigen Jubiläum.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#120c18",
+  "theme_color": "#120c18",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

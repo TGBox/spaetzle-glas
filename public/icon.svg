@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#2e1d3b" />
+      <stop offset="100%" stop-color="#120c18" />
+    </radialGradient>
+    <linearGradient id="glass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.34" />
+      <stop offset="50%" stop-color="#ffe7b8" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#f7c873" stop-opacity="0.28" />
+    </linearGradient>
+    <linearGradient id="cork" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d3a16a" />
+      <stop offset="100%" stop-color="#8b5c34" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd97d" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#ffd97d" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <circle cx="256" cy="276" r="145" fill="url(#glow)" opacity="0.28" />
+  <rect x="190" y="76" width="132" height="44" rx="14" fill="url(#cork)" />
+  <rect x="176" y="112" width="160" height="24" rx="12" fill="#e6be7a" opacity="0.85" />
+  <path
+    d="M168 136 H344 C368 148 378 176 378 214 V386 C378 416 354 436 322 436 H190 C158 436 134 416 134 386 V214 C134 176 144 148 168 136 Z"
+    fill="url(#glass)"
+    stroke="#ffe4b5"
+    stroke-opacity="0.55"
+    stroke-width="6"
+  />
+  <path
+    d="M164 196 V374"
+    stroke="#ffffff"
+    stroke-opacity="0.32"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+  <g transform="translate(256 266)">
+    <polygon
+      points="0,-54 14,-16 54,-16 22,8 34,46 0,24 -34,46 -22,8 -54,-16 -14,-16"
+      fill="#ffd574"
+      stroke="#fff2cc"
+      stroke-width="3"
+    />
+  </g>
+  <g transform="translate(198 340) rotate(-18) scale(0.55)">
+    <polygon
+      points="0,-54 14,-16 54,-16 22,8 34,46 0,24 -34,46 -22,8 -54,-16 -14,-16"
+      fill="#f6a89e"
+    />
+  </g>
+  <g transform="translate(316 334) rotate(22) scale(0.5)">
+    <polygon
+      points="0,-54 14,-16 54,-16 22,8 34,46 0,24 -34,46 -22,8 -54,-16 -14,-16"
+      fill="#ffe5a3"
+    />
+  </g>
+  <circle cx="204" cy="216" r="5" fill="#fff6db" />
+  <circle cx="310" cy="212" r="4" fill="#fff6db" />
+  <circle cx="258" cy="378" r="6" fill="#ffd97d" />
+</svg>
