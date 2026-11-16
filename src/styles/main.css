@@ -291,6 +291,13 @@ body {
   box-shadow: 0 8px 24px rgba(241, 168, 92, 0.36);
 }
 
+/* In column layouts the 210px flex-basis would become a height. */
+.voucher-actions .btn-primary,
+.gallery-export .btn-primary {
+  flex: none;
+  align-self: stretch;
+}
+
 .btn-primary:disabled {
   opacity: 0.55;
   cursor: default;
@@ -874,6 +881,356 @@ body {
   text-align: center;
 }
 
+/* Late note on a star opened after its day */
+.card-late-note {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 212, 121, 0.22);
+  border: 1px solid rgba(200, 145, 67, 0.4);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.92rem;
+  color: #6a4314;
+}
+
+.card-paper.is-compliment .card-late-note,
+.card-paper.is-media .card-late-note {
+  color: var(--gold-soft);
+  border-color: rgba(255, 212, 121, 0.4);
+  background: rgba(255, 212, 121, 0.12);
+}
+
+.text-btn {
+  display: block;
+  margin: 12px auto 0;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: #8a6a4a;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Scratch-off foil on vouchers */
+.scratch-wrap {
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  margin-top: 10px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(200, 145, 67, 0.45);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.scratch-content {
+  padding: 18px 16px;
+  min-height: 150px;
+}
+
+.scratch-title {
+  margin: 0 0 8px;
+  font-family: var(--font-serif);
+  font-size: 1.18rem;
+  line-height: 1.25;
+  color: #24141d;
+}
+
+.scratch-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  /* The finger must scratch, not scroll the card. */
+  touch-action: none;
+  transition: opacity 0.38s ease;
+}
+
+.scratch-canvas.is-cleared {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Type 6: Map with photos per place */
+.card-paper.is-map .card-message {
+  margin-bottom: 14px;
+}
+
+.map-stage {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(42, 29, 36, 0.16);
+  box-shadow: 0 10px 26px rgba(42, 29, 36, 0.14);
+}
+
+.map-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 10 / 9;
+  overflow: hidden;
+  /* Backdrop for when the map tiles cannot be loaded (offline). */
+  background: linear-gradient(160deg, #e9dcc3 0%, #d8c6a6 100%);
+}
+
+.map-tile {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  max-width: none;
+  /* Warms up the standard map colors to match the paper cards. */
+  filter: sepia(0.35) saturate(0.85) brightness(1.02);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.map-pin {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  /* The tip of the pin (30px circle + 8px pointer) sits exactly on the place. */
+  margin: -38px 0 0 -15px;
+  padding: 0;
+  border: 2px solid #fff8ea;
+  border-radius: 50%;
+  background: #8e2736;
+  color: #fff8ea;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(42, 29, 36, 0.4);
+  cursor: pointer;
+}
+
+.map-pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-top: 8px solid #8e2736;
+  border-bottom: 0;
+}
+
+.map-pin.is-selected {
+  background: #f1a85c;
+  color: #2c1714;
+  z-index: 2;
+}
+
+.map-pin.is-selected::after {
+  border-top-color: #f1a85c;
+}
+
+.map-credit {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 2px 6px;
+  border-top-left-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  font-size: 0.62rem;
+  color: #4f3940;
+  text-decoration: none;
+}
+
+.map-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.map-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 12px 4px 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(142, 39, 54, 0.3);
+  background: rgba(142, 39, 54, 0.06);
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #5b1c27;
+  cursor: pointer;
+}
+
+.map-chip-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #8e2736;
+  color: #fff8ea;
+  font-size: 0.76rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-chip.is-selected {
+  background: #f1a85c;
+  border-color: #c98a3a;
+  color: #2c1714;
+}
+
+.map-chip.is-selected .map-chip-number {
+  background: #2c1714;
+}
+
+.map-place-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.map-place-name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  color: #24141d;
+}
+
+.map-place-count {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #7a5c64;
+  white-space: nowrap;
+}
+
+.map-place-meta {
+  margin: 2px 0 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: #4f3940;
+}
+
+.map-photos {
+  display: flex;
+  gap: 10px;
+  margin: 10px -22px 0;
+  padding: 0 22px 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.map-photos::-webkit-scrollbar {
+  display: none;
+}
+
+.map-photo {
+  flex: 0 0 82%;
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  scroll-snap-align: center;
+  background: linear-gradient(145deg, #2d1b3b 0%, #5c2d49 52%, #d4896a 100%);
+  box-shadow: 0 8px 20px rgba(42, 29, 36, 0.18);
+}
+
+.map-photos.is-single .map-photo {
+  flex-basis: 100%;
+}
+
+.map-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.map-photo.is-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  font-size: 0.78rem;
+  text-align: center;
+  color: rgba(252, 245, 232, 0.85);
+  word-break: break-word;
+}
+
+/* Type 7: Quiz */
+.quiz-question {
+  margin: 4px 0 14px;
+  font-family: var(--font-serif);
+  font-size: 1.14rem;
+  line-height: 1.4;
+  color: #24141d;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quiz-option {
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(42, 29, 36, 0.2);
+  background: #fffdf7;
+  font-family: var(--font-sans);
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #36252c;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.quiz-option:active {
+  transform: scale(0.98);
+}
+
+.quiz-option:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.quiz-option.is-wrong {
+  border-color: #c96a6a;
+  background: #fbe9e6;
+  text-decoration: line-through;
+  animation: lockShake 0.42s ease;
+}
+
+.quiz-option.is-correct {
+  opacity: 1;
+  border-color: #c98a3a;
+  background: linear-gradient(135deg, #ffe6a8 0%, #f6c57c 100%);
+  color: #2c1714;
+}
+
+.quiz-feedback {
+  min-height: 22px;
+  margin: 10px 0 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #8e2736;
+}
+
+.quiz-reveal {
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(42, 29, 36, 0.22);
+  animation: popIn 0.4s ease;
+}
+
 /* Gallery Modal */
 .gallery-panel {
   background: linear-gradient(165deg, #231431 0%, #140c1d 100%);
@@ -947,6 +1304,20 @@ body {
 
 .gallery-tile.is-locked {
   opacity: 0.45;
+}
+
+.gallery-export {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gallery-export-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  text-align: center;
+  color: rgba(252, 245, 232, 0.62);
 }
 
 .gallery-day {
@@ -1034,5 +1405,156 @@ body {
   .wake-hint,
   .lock-card.is-shaking {
     animation: none;
+  }
+}
+
+/* Printable keepsake book: hidden on screen, the only thing visible in print */
+.print-book {
+  display: none;
+}
+
+@page {
+  margin: 16mm;
+}
+
+@media print {
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+    background: #ffffff;
+    color: #24141d;
+  }
+
+  #app {
+    height: auto;
+    overflow: visible;
+  }
+
+  #app > *:not(.print-book) {
+    display: none !important;
+  }
+
+  .print-book {
+    display: block;
+    font-family: var(--font-serif);
+    color: #24141d;
+    user-select: auto;
+  }
+
+  .print-page {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .print-cover {
+    padding-top: 30vh;
+    text-align: center;
+  }
+
+  .print-kicker,
+  .print-day {
+    margin: 0 0 6pt;
+    font-family: var(--font-sans);
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8e2736;
+  }
+
+  .print-cover-title {
+    margin: 0;
+    font-size: 34pt;
+    font-weight: 600;
+  }
+
+  .print-cover-subtitle {
+    margin: 10pt 0 0;
+    font-size: 13pt;
+    color: #4f3940;
+  }
+
+  .print-title {
+    margin: 0 0 4pt;
+    font-size: 20pt;
+    line-height: 1.2;
+  }
+
+  .print-subtitle,
+  .print-caption {
+    margin: 0 0 10pt;
+    font-style: italic;
+    font-size: 11pt;
+    color: #4f3940;
+  }
+
+  .print-message {
+    margin: 10pt 0;
+    font-size: 12pt;
+    line-height: 1.6;
+    white-space: pre-line;
+  }
+
+  .print-quote {
+    margin: 12pt 0;
+    padding-left: 12pt;
+    border-left: 3pt solid #c98a3a;
+    font-size: 15pt;
+    line-height: 1.4;
+  }
+
+  .print-photo {
+    display: block;
+    max-width: 100%;
+    max-height: 105mm;
+    margin: 10pt 0 6pt;
+    border-radius: 3mm;
+    break-inside: avoid;
+  }
+
+  .print-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4mm;
+  }
+
+  .print-photo-grid .print-photo {
+    width: 100%;
+    max-height: 70mm;
+    margin: 0;
+    object-fit: cover;
+  }
+
+  .print-place {
+    margin-top: 14pt;
+    break-inside: avoid;
+  }
+
+  .print-place-name {
+    margin: 0 0 2pt;
+    font-size: 14pt;
+  }
+
+  .print-code,
+  .print-note,
+  .print-open {
+    font-family: var(--font-sans);
+    font-size: 10.5pt;
+    color: #4f3940;
+  }
+
+  .print-stamp {
+    display: inline-block;
+    padding: 4pt 10pt;
+    border: 1.5pt solid #9d2438;
+    border-radius: 2mm;
+    font-weight: 700;
+    color: #9d2438;
   }
 }

@@ -1,7 +1,7 @@
 import type { Vec3 } from "../physics/starPhysics";
 
 interface PermissionCapableEvent {
-  requestPermission?: () => Promise<"granted" | "denied">;
+  requestPermission?: () => Promise<string>;
 }
 
 export interface MotionCallbacks {
@@ -115,6 +115,7 @@ export class MotionController {
   /**
    * Must be called synchronously inside a user gesture handler (click / touchend).
    * iOS shows its permission prompt once per app launch; later calls resolve silently.
+   * Resolves to false only when the user explicitly denied access.
    */
   public async requestPermissionsFromUserGesture(): Promise<boolean> {
     if (typeof window === "undefined") {
@@ -126,23 +127,24 @@ export class MotionController {
 
     // Both requests are started before the first await so they share the user activation.
     const requests = [window.DeviceMotionEvent, window.DeviceOrientationEvent].map(
-      (eventClass) => {
+      (eventClass): Promise<string> => {
         const candidate = eventClass as unknown as
           | PermissionCapableEvent
           | undefined;
         if (candidate && typeof candidate.requestPermission === "function") {
-          return candidate.requestPermission().catch(() => "denied" as const);
+          return candidate.requestPermission().catch(() => "denied");
         }
-        return Promise.resolve("granted" as const);
+        return Promise.resolve("granted");
       }
     );
 
     const results = await Promise.all(requests);
     this.permissionGranted = results.every((result) => result === "granted");
-    if (this.permissionGranted) {
-      this.startListening();
-    }
-    return this.permissionGranted;
+
+    // Listen in every case: browsers may answer with other states (e.g. "prompt")
+    // and still deliver events. Without access the events simply never arrive.
+    this.startListening();
+    return !results.includes("denied");
   }
 
   public startListening(): void {

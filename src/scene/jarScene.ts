@@ -29,6 +29,9 @@ const MAX_INERTIA = 100;
 /** How strongly the stars lag behind when the jar is twisted. */
 const SWIRL_COUPLING = 0.85;
 const MAX_SWIRL_STEP = 4;
+/** Half extents (scene units, incl. margin) that must stay visible around the jar. */
+const JAR_FIT_HALF_WIDTH = 2.1;
+const JAR_FIT_HALF_HEIGHT = 3.2;
 /** Radius of the invisible tap target around each star. */
 const STAR_HIT_RADIUS = 0.42;
 
@@ -189,6 +192,54 @@ function createNumberBadgeTexture(
   return texture;
 }
 
+/**
+ * Badge with a winking face, shown briefly on stars whose day she missed.
+ */
+function createWinkBadgeTexture(): THREE.CanvasTexture {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+
+  if (ctx) {
+    ctx.clearRect(0, 0, size, size);
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, 42, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 222, 150, 0.97)";
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(255, 250, 235, 0.9)";
+    ctx.stroke();
+
+    ctx.strokeStyle = "#2c1614";
+    ctx.fillStyle = "#2c1614";
+    ctx.lineWidth = 6;
+    ctx.lineCap = "round";
+
+    // Open left eye.
+    ctx.beginPath();
+    ctx.arc(48, 54, 6, 0, Math.PI * 2);
+    ctx.fill();
+    // Closed (winking) right eye.
+    ctx.beginPath();
+    ctx.arc(80, 58, 9, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.stroke();
+    // Smile.
+    ctx.beginPath();
+    ctx.arc(64, 62, 22, Math.PI * 0.18, Math.PI * 0.82);
+    ctx.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/** Seconds between two winks of a missed star, and how long one wink lasts. */
+const WINK_INTERVAL_SECONDS = 5.5;
+const WINK_DURATION_SECONDS = 0.7;
+
 function createJarSilhouetteGeometry(): THREE.LatheGeometry {
   const points: THREE.Vector2[] = [
     new THREE.Vector2(0.0, -2.06),
@@ -233,6 +284,7 @@ export class JarScene {
   private readonly pointerNdc = new THREE.Vector2();
 
   private readonly badgeCache = new Map<string, THREE.CanvasTexture>();
+  private readonly winkTexture = createWinkBadgeTexture();
   private readonly starVisualStates = new Map<number, StarVisualState>();
   private todayDay: number | null = null;
   private constellationMode = false;
@@ -758,6 +810,21 @@ export class JarScene {
         );
       }
 
+      // Stars whose day she missed wink at her every few seconds (staggered per star).
+      const isWinking =
+        state === "available_past" &&
+        (this.elapsedTime + node.day * 1.7) % WINK_INTERVAL_SECONDS <
+          WINK_DURATION_SECONDS;
+      if (state === "available_past") {
+        const badgeTexture = isWinking
+          ? this.winkTexture
+          : this.getOrCreateBadgeTexture(node.day, state);
+        if (node.badgeMaterial.map !== badgeTexture) {
+          node.badgeMaterial.map = badgeTexture;
+          node.badgeMaterial.needsUpdate = true;
+        }
+      }
+
       if (state === "available_today") {
         const pulse = 0.5 + 0.5 * Math.sin(this.elapsedTime * 3.4);
         node.starMesh.scale.setScalar(
@@ -767,7 +834,9 @@ export class JarScene {
           0.95 + pulse * 0.65 + this.todayCharge * 1.6;
       } else if (state === "available_past") {
         const pulse = 0.5 + 0.5 * Math.sin(this.elapsedTime * 2.1 + node.day);
-        node.starMesh.scale.setScalar(body.radius * 1.02);
+        node.starMesh.scale.setScalar(
+          body.radius * (1.02 + (isWinking ? 0.16 : 0))
+        );
         node.material.emissiveIntensity = 0.48 + pulse * 0.22;
       } else {
         node.starMesh.scale.setScalar(body.radius);
@@ -779,7 +848,11 @@ export class JarScene {
         .addScaledVector(localTowardCamera, body.radius * 1.32);
       node.badgeSprite.position.y += 0.08;
 
-      const badgeScale = state === "available_today" ? 0.29 : 0.22;
+      const badgeScale = isWinking
+        ? 0.34
+        : state === "available_today"
+          ? 0.29
+          : 0.22;
       node.badgeSprite.scale.set(badgeScale, badgeScale, 1);
     }
 
@@ -916,8 +989,13 @@ export class JarScene {
     }
 
     this.camera.aspect = width / height;
-    // Slightly pull camera back on very narrow portrait iPhones so the whole jar fits above the HUD.
-    this.camera.position.z = width / height < 0.6 ? 8.4 : 7.3;
+    // Pull the camera back until the whole jar fits: on narrow portrait iPhones the
+    // width is the limit, on wide screens the height (plus room for the HUD).
+    const halfFovTan = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+    const distanceForWidth =
+      JAR_FIT_HALF_WIDTH / (halfFovTan * this.camera.aspect);
+    const distanceForHeight = JAR_FIT_HALF_HEIGHT / halfFovTan;
+    this.camera.position.z = Math.max(distanceForWidth, distanceForHeight);
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
     this.particleMaterial.uniforms.uPixelRatio.value = Math.min(
@@ -1033,6 +1111,7 @@ export class JarScene {
     for (const texture of this.badgeCache.values()) {
       texture.dispose();
     }
+    this.winkTexture.dispose();
     this.badgeCache.clear();
     this.renderer.dispose();
   }

@@ -5,7 +5,22 @@ import {
   isJarPasswordValid,
   isFinaleUnlocked,
 } from "../domain/adventRules";
-import type { AdventDay, CardType, PersistedAppState, StarVisualState } from "../types/advent";
+import type {
+  AdventDay,
+  CardType,
+  MapPlace,
+  PersistedAppState,
+  StarVisualState,
+} from "../types/advent";
+import { escapeHtml } from "./html";
+import {
+  computeVisibleTiles,
+  fitMapView,
+  placeToViewportPixel,
+  tileUrl,
+} from "./mapCard";
+import { buildPrintBookHtml } from "./printBook";
+import { attachScratchSurface } from "./scratchCard";
 
 export interface UiHandlers {
   readonly onUnlockJar: () => Promise<void>;
@@ -16,16 +31,9 @@ export interface UiHandlers {
   readonly onToggleConstellation: () => void;
   readonly onToggleMute: () => void;
   readonly onRedeemVoucher: (day: number) => void;
+  readonly onVoucherScratched: (day: number) => void;
+  readonly onQuizAnswer: (day: number, correct: boolean) => void;
   readonly onTogglePreviewSecret: () => void;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 const ICON_ATTRIBUTES =
@@ -51,6 +59,10 @@ function getCardTypeIcon(type: CardType): string {
       return "✨";
     case "media":
       return "🎬";
+    case "map":
+      return "🗺️";
+    case "quiz":
+      return "❓";
   }
 }
 
@@ -157,6 +169,9 @@ export class AppUi {
   private secretTapCount = 0;
   private secretTapResetId: number | null = null;
   private currentModalDay: number | null = null;
+  private currentLateNote: string | null = null;
+  private selectedPlaceIndex = 0;
+  private readonly printBook: HTMLElement;
   private sensorsLive = false;
   private hintContext: {
     readonly constellationMode: boolean;
@@ -251,6 +266,8 @@ export class AppUi {
       <div class="overlay is-hidden js-gallery-overlay" role="dialog" aria-modal="true">
         <div class="modal-shell js-gallery-container"></div>
       </div>
+
+      <div class="print-book js-print-book" aria-hidden="true"></div>
     `;
 
     this.canvas = this.mustQuery<HTMLCanvasElement>(".scene-canvas");
@@ -282,6 +299,7 @@ export class AppUi {
     this.cardContainer = this.mustQuery<HTMLElement>(".js-card-container");
     this.galleryOverlay = this.mustQuery<HTMLElement>(".js-gallery-overlay");
     this.galleryContainer = this.mustQuery<HTMLElement>(".js-gallery-container");
+    this.printBook = this.mustQuery<HTMLElement>(".js-print-book");
 
     this.bindEvents();
   }
@@ -521,15 +539,26 @@ export class AppUi {
     }, 2800);
   }
 
-  public openCardModal(day: AdventDay, state: PersistedAppState): void {
+  /**
+   * Opens a day's card. `lateNote` is the teasing line for a star opened after its day.
+   */
+  public openCardModal(
+    day: AdventDay,
+    state: PersistedAppState,
+    lateNote: string | null = null
+  ): void {
     this.currentModalDay = day.day;
-    this.renderCardContent(day, state);
+    this.currentLateNote = lateNote;
+    this.selectedPlaceIndex = 0;
+    // Show the overlay first: the scratch foil and the map measure their own size.
     this.cardOverlay.classList.remove("is-hidden");
+    this.renderCardContent(day, state);
   }
 
   public closeCardModal(): void {
     this.stopActiveMedia();
     this.currentModalDay = null;
+    this.currentLateNote = null;
     this.cardOverlay.classList.add("is-hidden");
   }
 
@@ -544,16 +573,8 @@ export class AppUi {
   private renderCardContent(day: AdventDay, state: PersistedAppState): void {
     this.stopActiveMedia();
 
-    const typeClass =
-      day.type === "letter"
-        ? "is-letter"
-        : day.type === "voucher"
-          ? "is-voucher"
-          : day.type === "compliment"
-            ? "is-compliment"
-            : day.type === "media"
-              ? "is-media"
-              : "is-polaroid";
+    const typeClass = `is-${day.type}`;
+    let displayTitle = day.title;
 
     const subtitleHtml = day.subtitle
       ? `<p class="card-subtitle">${escapeHtml(day.subtitle)}</p>`
@@ -584,15 +605,33 @@ export class AppUi {
       const codeHtml = day.voucherCode
         ? `<div class="voucher-code-box"><span>Gutschein-Code</span><span class="voucher-code-value">${escapeHtml(day.voucherCode)}</span></div>`
         : "";
-      const actionHtml = redeemedDate
-        ? `<div class="voucher-stamp">EINGELÖST AM ${escapeHtml(redeemedDate)} ♥</div>`
-        : `<button type="button" class="btn btn-primary js-redeem-voucher-btn">Gutschein einlösen 💌</button>`;
+      const scratched = state.scratchedVouchers.includes(day.day);
 
-      bodySpecificHtml = `
-        <p class="card-message">${escapeHtml(day.message)}</p>
-        ${codeHtml}
-        <div class="voucher-actions">${actionHtml}</div>
-      `;
+      if (scratched) {
+        const actionHtml = redeemedDate
+          ? `<div class="voucher-stamp">EINGELÖST AM ${escapeHtml(redeemedDate)} ♥</div>`
+          : `<button type="button" class="btn btn-primary js-redeem-voucher-btn">Gutschein einlösen</button>`;
+
+        bodySpecificHtml = `
+          <p class="card-message">${escapeHtml(day.message)}</p>
+          ${codeHtml}
+          <div class="voucher-actions">${actionHtml}</div>
+        `;
+      } else {
+        // The title names the gift, so it stays under the foil too.
+        displayTitle = "Ein Gutschein für dich";
+        bodySpecificHtml = `
+          <div class="scratch-wrap">
+            <div class="scratch-content">
+              <h3 class="scratch-title">${escapeHtml(day.title)}</h3>
+              <p class="card-message">${escapeHtml(day.message)}</p>
+              ${codeHtml}
+            </div>
+            <canvas class="scratch-canvas js-scratch-canvas" role="img" aria-label="Rubbelfeld über dem Gutschein"></canvas>
+          </div>
+          <button type="button" class="text-btn js-scratch-skip">Ohne Rubbeln anzeigen</button>
+        `;
+      }
     } else if (day.type === "media") {
       const videoBlock = day.videoUrl
         ? `
@@ -641,6 +680,47 @@ export class AppUi {
         </div>
         <p class="card-message">${escapeHtml(day.message)}</p>
       `;
+    } else if (day.type === "map") {
+      const places = day.places ?? [];
+      const chipsHtml = places
+        .map(
+          (place, index) =>
+            `<button type="button" class="map-chip js-map-chip" data-index="${index}"><span class="map-chip-number">${index + 1}</span>${escapeHtml(place.name)}</button>`
+        )
+        .join("");
+
+      bodySpecificHtml = `
+        <p class="card-message">${escapeHtml(day.message)}</p>
+        <div class="map-stage">
+          <div class="map-viewport js-map-viewport"></div>
+          <a class="map-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>
+        </div>
+        <div class="map-chips">${chipsHtml}</div>
+        <div class="map-place js-map-place"></div>
+      `;
+    } else if (day.type === "quiz") {
+      const quiz = day.quiz;
+      const solved = state.solvedQuizzes.includes(day.day);
+      const optionsHtml = (quiz?.options ?? [])
+        .map((option, index) => {
+          const isCorrect = solved && index === quiz?.correctIndex;
+          return `<button type="button" class="quiz-option js-quiz-option${isCorrect ? " is-correct" : ""}" data-index="${index}" ${solved ? "disabled" : ""}>${escapeHtml(option)}</button>`;
+        })
+        .join("");
+      const photoHtml =
+        solved && day.photoUrl
+          ? `<div class="card-polaroid-frame"><div class="card-polaroid-media"><img src="${escapeHtml(day.photoUrl)}" alt="${escapeHtml(day.title)}" /></div></div>`
+          : "";
+      const revealHtml = solved
+        ? `<div class="quiz-reveal">${photoHtml}<p class="card-message">${escapeHtml(day.message)}</p></div>`
+        : "";
+
+      bodySpecificHtml = `
+        <p class="quiz-question">${escapeHtml(quiz?.question ?? "")}</p>
+        <div class="quiz-options">${optionsHtml}</div>
+        <p class="quiz-feedback js-quiz-feedback" role="status">${solved ? "Richtig! ♥" : ""}</p>
+        ${revealHtml}
+      `;
     } else {
       const highlight = day.complimentHighlight ?? day.title;
       bodySpecificHtml = `
@@ -656,7 +736,8 @@ export class AppUi {
           <span class="card-day-pill">Tag ${day.day} • Dezember</span>
           <span class="card-year-pill">${escapeHtml(day.yearBadge)}</span>
         </div>
-        <h2 class="card-title">${escapeHtml(day.title)}</h2>
+        ${this.currentLateNote ? `<p class="card-late-note">${escapeHtml(this.currentLateNote)}</p>` : ""}
+        <h2 class="card-title">${escapeHtml(displayTitle)}</h2>
         ${subtitleHtml}
         ${bodySpecificHtml}
       </div>
@@ -671,6 +752,46 @@ export class AppUi {
     redeemBtn?.addEventListener("click", () => {
       this.handlers.onRedeemVoucher(day.day);
     });
+
+    const scratchCanvas =
+      this.cardContainer.querySelector<HTMLCanvasElement>(".js-scratch-canvas");
+    if (scratchCanvas) {
+      attachScratchSurface(scratchCanvas, {
+        label: "Rubbel mich frei",
+        onRevealed: () => this.handlers.onVoucherScratched(day.day),
+      });
+      this.cardContainer
+        .querySelector(".js-scratch-skip")
+        ?.addEventListener("click", () => {
+          this.handlers.onVoucherScratched(day.day);
+        });
+    }
+
+    if (day.type === "map") {
+      this.mountMap(day.places ?? []);
+    }
+
+    const quiz = day.quiz;
+    if (day.type === "quiz" && quiz) {
+      const feedback =
+        this.cardContainer.querySelector<HTMLElement>(".js-quiz-feedback");
+      this.cardContainer
+        .querySelectorAll<HTMLButtonElement>(".js-quiz-option")
+        .forEach((button) => {
+          button.addEventListener("click", () => {
+            const correct = Number(button.dataset.index) === quiz.correctIndex;
+            if (!correct) {
+              button.classList.add("is-wrong");
+              button.disabled = true;
+              if (feedback) {
+                feedback.textContent =
+                  quiz.wrongHint ?? "Nicht ganz. Versuch es noch einmal.";
+              }
+            }
+            this.handlers.onQuizAnswer(day.day, correct);
+          });
+        });
+    }
 
     const polaroidImg = this.cardContainer.querySelector<HTMLImageElement>(
       ".js-polaroid-img"
@@ -708,6 +829,112 @@ export class AppUi {
     }
   }
 
+  /**
+   * Fills the map viewport with tiles and numbered pins and shows the selected place.
+   * Tiles come from OpenStreetMap; if they cannot load, the pins remain on a plain backdrop.
+   */
+  private mountMap(places: readonly MapPlace[]): void {
+    const viewport =
+      this.cardContainer.querySelector<HTMLElement>(".js-map-viewport");
+    if (!viewport || places.length === 0) {
+      return;
+    }
+
+    const width = viewport.clientWidth;
+    const height = viewport.clientHeight;
+    const view = fitMapView(places, width, height);
+
+    const tilesHtml = computeVisibleTiles(view, width, height)
+      .map(
+        (tile) =>
+          `<img class="map-tile" src="${tileUrl(tile)}" alt="" draggable="false" style="left:${tile.left.toFixed(1)}px;top:${tile.top.toFixed(1)}px" />`
+      )
+      .join("");
+    const pinsHtml = places
+      .map((place, index) => {
+        const pixel = placeToViewportPixel(place, view, width, height);
+        return `<button type="button" class="map-pin js-map-pin" data-index="${index}" style="left:${pixel.left.toFixed(1)}px;top:${pixel.top.toFixed(1)}px" aria-label="${escapeHtml(place.name)}">${index + 1}</button>`;
+      })
+      .join("");
+    viewport.innerHTML = `${tilesHtml}${pinsHtml}`;
+
+    viewport.querySelectorAll<HTMLImageElement>(".map-tile").forEach((tile) => {
+      tile.addEventListener("error", () => tile.remove());
+    });
+
+    const selectPlace = (index: number): void => {
+      this.selectedPlaceIndex = index;
+      this.cardContainer
+        .querySelectorAll<HTMLElement>(".js-map-pin, .js-map-chip")
+        .forEach((element) => {
+          element.classList.toggle(
+            "is-selected",
+            Number(element.dataset.index) === index
+          );
+        });
+      this.renderMapPlace(places[index]);
+    };
+
+    this.cardContainer
+      .querySelectorAll<HTMLElement>(".js-map-pin, .js-map-chip")
+      .forEach((element) => {
+        element.addEventListener("click", () => {
+          selectPlace(Number(element.dataset.index));
+        });
+      });
+
+    selectPlace(Math.min(this.selectedPlaceIndex, places.length - 1));
+  }
+
+  private renderMapPlace(place: MapPlace): void {
+    const panel = this.cardContainer.querySelector<HTMLElement>(".js-map-place");
+    if (!panel) {
+      return;
+    }
+
+    const meta = [place.date, place.note]
+      .filter((part): part is string => Boolean(part))
+      .map(escapeHtml)
+      .join(" · ");
+    const photosHtml = place.photos
+      .map(
+        (url, index) =>
+          `<figure class="map-photo"><img src="${escapeHtml(url)}" alt="${escapeHtml(place.name)}, Foto ${index + 1}" data-url="${escapeHtml(url)}" /></figure>`
+      )
+      .join("");
+    const countLabel =
+      place.photos.length === 1 ? "1 Foto" : `${place.photos.length} Fotos`;
+
+    panel.innerHTML = `
+      <div class="map-place-head">
+        <h3 class="map-place-name">${escapeHtml(place.name)}</h3>
+        <span class="map-place-count">${countLabel}</span>
+      </div>
+      ${meta ? `<p class="map-place-meta">${meta}</p>` : ""}
+      <div class="map-photos${place.photos.length === 1 ? " is-single" : ""}">${photosHtml}</div>
+    `;
+
+    panel.querySelectorAll<HTMLImageElement>(".map-photo img").forEach((img) => {
+      img.addEventListener("error", () => {
+        const figure = img.parentElement;
+        if (figure) {
+          figure.classList.add("is-missing");
+          figure.textContent = `Foto fehlt: ${img.dataset.url ?? ""}`;
+        }
+      });
+    });
+  }
+
+  /**
+   * Builds the hidden printable book so its photos are loaded before printing starts.
+   */
+  private preparePrintBook(state: PersistedAppState): void {
+    this.printBook.innerHTML = buildPrintBookHtml(ADVENT_DAYS, state);
+    this.printBook.querySelectorAll("img").forEach((img) => {
+      img.addEventListener("error", () => img.remove());
+    });
+  }
+
   private lastGalleryRenderArgs: {
     state: PersistedAppState;
     now: Date;
@@ -743,6 +970,18 @@ export class AppUi {
     previewAll: boolean
   ): void {
     const openedSet = new Set<number>(state.openedDays);
+    const finaleActive = isFinaleUnlocked(openedSet, now, previewAll);
+    const exportHtml = finaleActive
+      ? `
+        <div class="gallery-export">
+          <button type="button" class="btn btn-primary js-export-btn">Alle Momente als PDF speichern</button>
+          <p class="gallery-export-hint">Es öffnet sich der Druckdialog. Wähle dort „Als PDF sichern“.</p>
+        </div>`
+      : "";
+    if (finaleActive) {
+      this.preparePrintBook(state);
+    }
+
     const tilesHtml = ADVENT_DAYS.map((entry) => {
       const visualState: StarVisualState = getStarVisualState(
         entry.day,
@@ -760,7 +999,11 @@ export class AppUi {
               ? "is-locked"
               : "";
       const redeemedMark = state.redeemedVouchers[entry.day] ? " ♥" : "";
-      const icon = isLocked ? "🔒" : `${getCardTypeIcon(entry.type)}${redeemedMark}`;
+      const icon = isLocked
+        ? "🔒"
+        : visualState === "available_past"
+          ? "😉"
+          : `${getCardTypeIcon(entry.type)}${redeemedMark}`;
 
       return `
         <button type="button" class="gallery-tile ${stateClass}" data-day="${entry.day}" aria-label="Tag ${entry.day}">
@@ -776,8 +1019,20 @@ export class AppUi {
         <h2 class="gallery-title">Unsere 24 Momente</h2>
         <p class="gallery-subtitle">${openedSet.size} von 24 Sternen bereits geöffnet</p>
         <div class="gallery-grid">${tilesHtml}</div>
+        ${exportHtml}
       </div>
     `;
+
+    this.galleryContainer
+      .querySelector(".js-export-btn")
+      ?.addEventListener("click", () => {
+        // Called directly in the tap so browsers treat printing as user-initiated.
+        if (typeof window.print === "function") {
+          window.print();
+        } else {
+          this.showToast("Drucken wird hier nicht unterstützt. Öffne das Glas in Safari.");
+        }
+      });
 
     this.galleryContainer
       .querySelector(".js-close-gallery-btn")

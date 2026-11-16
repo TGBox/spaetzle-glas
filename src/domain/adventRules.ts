@@ -1,4 +1,8 @@
-import { ADVENT_DAYS, JAR_PASSWORDS } from "../data/adventDays";
+import {
+  ADVENT_DAYS,
+  JAR_PASSWORDS,
+  MISSED_DAY_NOTES,
+} from "../data/adventDays";
 import type { AdventDay, StarVisualState } from "../types/advent";
 
 const ADVENT_YEAR = 2026;
@@ -134,4 +138,28 @@ export function isFinaleUnlocked(
  */
 export function getAdventDayByNumber(day: number): AdventDay | undefined {
   return ADVENT_DAYS.find((entry) => entry.day === day);
+}
+
+/**
+ * True when a day's star could already have been opened on an earlier date,
+ * i.e. it is unlocked but it is no longer "its" day.
+ */
+export function isDayMissed(day: number, now: Date): boolean {
+  if (!isDayUnlocked(day, now, false)) {
+    return false;
+  }
+  const isAdventMonth =
+    now.getFullYear() === ADVENT_YEAR && now.getMonth() === DECEMBER_MONTH_INDEX;
+  return !isAdventMonth || now.getDate() > day;
+}
+
+/**
+ * Returns the teasing note for a star that is opened late, or null when it is on time.
+ */
+export function getMissedDayNote(day: number, now: Date): string | null {
+  if (!isDayMissed(day, now) || MISSED_DAY_NOTES.length === 0) {
+    return null;
+  }
+  const template = MISSED_DAY_NOTES[day % MISSED_DAY_NOTES.length];
+  return template.replace("{day}", String(day));
 }

@@ -33,6 +33,8 @@ export function createDefaultAppState(): PersistedAppState {
     openedDays: [],
     redeemedVouchers: {},
     muted: false,
+    scratchedVouchers: [],
+    solvedQuizzes: [],
   };
 }
 
@@ -40,7 +42,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function sanitizeOpenedDays(raw: unknown): number[] {
+function sanitizeDayList(raw: unknown): number[] {
   if (!Array.isArray(raw)) {
     return [];
   }
@@ -94,9 +96,11 @@ export function loadAppState(
 
     return {
       unlockedJar: Boolean(parsed.unlockedJar),
-      openedDays: sanitizeOpenedDays(parsed.openedDays),
+      openedDays: sanitizeDayList(parsed.openedDays),
       redeemedVouchers: sanitizeRedeemedVouchers(parsed.redeemedVouchers),
       muted: Boolean(parsed.muted),
+      scratchedVouchers: sanitizeDayList(parsed.scratchedVouchers),
+      solvedQuizzes: sanitizeDayList(parsed.solvedQuizzes),
     };
   } catch {
     return createDefaultAppState();
@@ -142,6 +146,48 @@ export function markDayOpened(
   const next: PersistedAppState = {
     ...state,
     openedDays: [...state.openedDays, day].sort((a, b) => a - b),
+  };
+  saveAppState(next, storage);
+  return next;
+}
+
+function isValidDay(day: number): boolean {
+  return Number.isInteger(day) && day >= 1 && day <= 24;
+}
+
+/**
+ * Remembers that the scratch-off foil of a voucher day has been rubbed away.
+ */
+export function markVoucherScratched(
+  state: PersistedAppState,
+  day: number,
+  storage: StorageLike = getDefaultStorage()
+): PersistedAppState {
+  if (!isValidDay(day) || state.scratchedVouchers.includes(day)) {
+    return state;
+  }
+  const next: PersistedAppState = {
+    ...state,
+    scratchedVouchers: [...state.scratchedVouchers, day].sort((a, b) => a - b),
+  };
+  saveAppState(next, storage);
+  return next;
+}
+
+/**
+ * Remembers that the quiz of a day has been answered correctly.
+ */
+export function markQuizSolved(
+  state: PersistedAppState,
+  day: number,
+  storage: StorageLike = getDefaultStorage()
+): PersistedAppState {
+  if (!isValidDay(day) || state.solvedQuizzes.includes(day)) {
+    return state;
+  }
+  const next: PersistedAppState = {
+    ...state,
+    solvedQuizzes: [...state.solvedQuizzes, day].sort((a, b) => a - b),
   };
   saveAppState(next, storage);
   return next;

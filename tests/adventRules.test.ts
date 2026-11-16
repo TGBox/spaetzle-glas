@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   getActiveTodayDay,
   getAdventDayByNumber,
+  getMissedDayNote,
   getStarVisualState,
   isJarPasswordValid,
+  isDayMissed,
   isDayUnlocked,
   isFinaleUnlocked,
 } from "../src/domain/adventRules";
@@ -86,5 +88,25 @@ describe("isFinaleUnlocked", () => {
     expect(getAdventDayByNumber(1)?.day).toBe(1);
     expect(getAdventDayByNumber(24)?.day).toBe(24);
     expect(getAdventDayByNumber(99)).toBeUndefined();
+  });
+});
+
+describe("missed days", () => {
+  it("treats only earlier, already unlocked days as missed", () => {
+    const dec10 = new Date(2026, 11, 10, 9, 0, 0);
+    expect(isDayMissed(9, dec10)).toBe(true);
+    expect(isDayMissed(10, dec10)).toBe(false);
+    expect(isDayMissed(11, dec10)).toBe(false);
+    expect(isDayMissed(3, new Date(2026, 10, 20))).toBe(false);
+    expect(isDayMissed(24, new Date(2027, 0, 2))).toBe(true);
+  });
+
+  it("returns a teasing note with the day filled in, or null when on time", () => {
+    const dec10 = new Date(2026, 11, 10, 9, 0, 0);
+    expect(getMissedDayNote(10, dec10)).toBeNull();
+
+    const note = getMissedDayNote(4, dec10);
+    expect(note).not.toBeNull();
+    expect(note).not.toContain("{day}");
   });
 });

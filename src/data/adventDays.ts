@@ -8,6 +8,17 @@ import type { AdventDay } from "../types/advent";
 export const JAR_PASSWORDS: readonly string[] = ["Fusili", "Fusilli"];
 
 /**
+ * Teasing notes shown on a card that she opens after its day has passed.
+ * `{day}` is replaced with the day number. One is picked per day.
+ */
+export const MISSED_DAY_NOTES: readonly string[] = [
+  "Ich warte schon seit dem {day}. Dezember hier auf dich 😉",
+  "Na endlich! Ich dachte schon, du hättest mich vergessen 😉",
+  "Besser spät als nie. Ich habe dir den Platz warmgehalten 😉",
+  "Psst … verpasst zählt nicht, ich bin ja noch da 😉",
+];
+
+/**
  * All 24 advent calendar entries for December 1 through December 24.
  *
  * How to customize before December 1:
@@ -18,6 +29,9 @@ export const JAR_PASSWORDS: readonly string[] = ["Fusili", "Fusilli"];
  * 3. To embed audio (`.mp3`, `.m4a`) and/or video (`.mp4`, `.mov`) on a "media" card,
  *    copy your files into `public/media/` (for example `public/media/tag-10.m4a` or
  *    `public/media/tag-15.mp4`) and set `audioUrl`, `videoUrl`, and optionally `videoPosterUrl`.
+ * 4. Every "voucher" card is covered by a scratch-off foil; nothing to configure.
+ * 5. A "map" card lists `places` (name, coordinates, 1..n photos each); a "quiz" card has a
+ *    `quiz` with a question, answer options and `correctIndex`.
  */
 export const ADVENT_DAYS: readonly AdventDay[] = [
   {
@@ -104,12 +118,43 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
   },
   {
     day: 9,
-    title: "Unterwegs in unserer eigenen Welt",
-    subtitle: "Reise-Moment",
-    type: "polaroid",
-    yearBadge: "Jahr 2 • 2022/23",
-    // photoUrl: "./photos/tag-09.jpg",
-    photoCaption: "Kein Plan, falscher Weg und trotzdem genau richtig",
+    title: "Unsere Landkarte",
+    subtitle: "Alle Orte, an denen wir zusammen waren",
+    type: "map",
+    yearBadge: "5 Jahre unterwegs",
+    // EXAMPLE PLACES: replace them with your own trips. To get coordinates, right-click a
+    // spot in Google Maps ("48.7758, 9.1829" = latitude, longitude).
+    // Each place takes any number of photos from `public/photos/` (at least one).
+    places: [
+      {
+        name: "Stuttgart",
+        latitude: 48.7758,
+        longitude: 9.1829,
+        date: "Dezember 2021",
+        note: "Wo alles angefangen hat.",
+        photos: ["./photos/karte-stuttgart-1.jpg", "./photos/karte-stuttgart-2.jpg"],
+      },
+      {
+        name: "Bodensee",
+        latitude: 47.6603,
+        longitude: 9.1758,
+        date: "Sommer 2023",
+        note: "Kein Plan, falscher Weg und trotzdem genau richtig.",
+        photos: ["./photos/karte-bodensee-1.jpg"],
+      },
+      {
+        name: "Hamburg",
+        latitude: 53.5511,
+        longitude: 9.9937,
+        date: "Frühling 2025",
+        note: "Fischbrötchen im Regen.",
+        photos: [
+          "./photos/karte-hamburg-1.jpg",
+          "./photos/karte-hamburg-2.jpg",
+          "./photos/karte-hamburg-3.jpg",
+        ],
+      },
+    ],
     message:
       "Selbst wenn die Route nicht stimmt oder das Wetter umschlägt: Mit dir wird aus jedem kleinen Umweg sofort die bessere Geschichte.",
   },
@@ -147,12 +192,20 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
   },
   {
     day: 13,
-    title: "Sonntagsfrühstück im Bett-Modus",
-    subtitle: "Lieblingsritual",
-    type: "polaroid",
+    title: "Weißt du noch …?",
+    subtitle: "Kleines Quiz über uns",
+    type: "quiz",
     yearBadge: "Jahr 3 • 2023/24",
+    // EXAMPLE QUESTION: replace question and answers with one of your inside jokes.
+    // `correctIndex` counts from 0 (0 = first answer). The message below (and optionally
+    // a photo via `photoUrl`) only appears after the correct answer.
+    quiz: {
+      question: "Was gibt es bei uns sonntags am liebsten zum Frühstück?",
+      options: ["Pfannkuchen im Bett", "Brezeln vom Bäcker", "Müsli auf dem Sofa"],
+      correctIndex: 0,
+      wrongHint: "Nicht ganz. Denk an Krümel in der Bettdecke.",
+    },
     // photoUrl: "./photos/tag-13.jpg",
-    photoCaption: "Kaffee, warmes Licht und kein Wecker weit und breit",
     message:
       "Diese ruhigen Morgenstunden, wenn draußen noch alles schläft und drinnen nur die Tassen klappern, sind mein persönlicher Lieblingsort.",
   },

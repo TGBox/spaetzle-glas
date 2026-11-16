@@ -4,6 +4,8 @@ import {
   formatGermanRedeemDate,
   loadAppState,
   markDayOpened,
+  markQuizSolved,
+  markVoucherScratched,
   redeemVoucherDay,
   setJarUnlockedState,
   setMutedState,
@@ -45,6 +47,31 @@ describe("storage persistence", () => {
     expect(reloaded.openedDays).toEqual([1, 5]);
     expect(reloaded.redeemedVouchers).toEqual({ 3: "07.12.2026" });
     expect(reloaded.muted).toBe(true);
+  });
+
+  it("persists scratched vouchers and solved quizzes and tolerates older saved states", () => {
+    const storage = createMockStorage();
+    let state = loadAppState(storage);
+
+    state = markVoucherScratched(state, 7, storage);
+    state = markVoucherScratched(state, 3, storage);
+    state = markVoucherScratched(state, 7, storage); // duplicate ignored
+    state = markQuizSolved(state, 6, storage);
+    state = markQuizSolved(state, 99, storage); // out of range ignored
+
+    const reloaded = loadAppState(storage);
+    expect(reloaded.scratchedVouchers).toEqual([3, 7]);
+    expect(reloaded.solvedQuizzes).toEqual([6]);
+
+    // A state saved before these features existed has neither field.
+    storage.setItem(
+      "spaetzle-glas-state-v1",
+      JSON.stringify({ unlockedJar: true, openedDays: [1], muted: false })
+    );
+    const legacy = loadAppState(storage);
+    expect(legacy.scratchedVouchers).toEqual([]);
+    expect(legacy.solvedQuizzes).toEqual([]);
+    expect(legacy.openedDays).toEqual([1]);
   });
 
   it("formats German redeem dates with leading zeros", () => {

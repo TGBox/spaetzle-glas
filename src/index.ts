@@ -3,13 +3,17 @@ import { SoundscapeController } from "./audio/soundscape";
 import {
   getActiveTodayDay,
   getAdventDayByNumber,
+  getMissedDayNote,
   getStarVisualState,
+  isDayMissed,
   isDayUnlocked,
   isFinaleUnlocked,
 } from "./domain/adventRules";
 import {
   loadAppState,
   markDayOpened,
+  markQuizSolved,
+  markVoucherScratched,
   redeemVoucherDay,
   setJarUnlockedState,
   setMutedState,
@@ -131,10 +135,34 @@ function bootstrap(): void {
     setTodayCharge(0);
     soundscape.playStarOpen(day);
     syncAllViews();
-    ui.openCardModal(entry, appState);
+    // A star opened after its day greets her with a wink (not while previewing).
+    const lateNote =
+      !wasAlreadyOpened && !previewAll ? getMissedDayNote(day, now) : null;
+    ui.openCardModal(entry, appState, lateNote);
 
     if (!wasAlreadyOpened && day === 24) {
       ui.showToast("Alle 24 Sterne erwacht — Schneekugel-Finale aktiv ❄️✨");
+    }
+  };
+
+  /** Tells her when stars from earlier days are still waiting (they wink in the jar). */
+  const announceMissedStars = (): void => {
+    if (previewAll) {
+      return;
+    }
+    const now = new Date();
+    let missedCount = 0;
+    for (let day = 1; day <= 24; day++) {
+      if (isDayMissed(day, now) && !appState.openedDays.includes(day)) {
+        missedCount++;
+      }
+    }
+    if (missedCount === 1) {
+      ui.showToast("Ein Stern zwinkert dir zu: Er wartet noch auf dich 😉");
+    } else if (missedCount > 1) {
+      ui.showToast(
+        `${missedCount} Sterne zwinkern dir zu: Sie warten noch auf dich 😉`
+      );
     }
   };
 
@@ -194,6 +222,8 @@ function bootstrap(): void {
         ui.showToast(
           "Ohne Bewegungssensoren: Ziehe durch das Glas oder tippe auf „Schütteln“"
         );
+      } else {
+        announceMissedStars();
       }
     },
     onWakeJar: () => {
@@ -202,6 +232,7 @@ function bootstrap(): void {
       haptics.tick();
       handleShake(0.6);
       void requestScreenWakeLock();
+      announceMissedStars();
     },
     onSelectStar: handleSelectStar,
     onOpenTodayStar: () => {
@@ -241,6 +272,23 @@ function bootstrap(): void {
       haptics.tick();
       syncAllViews();
       ui.showToast("Gutschein abgestempelt ♥");
+    },
+    onVoucherScratched: (day: number) => {
+      appState = markVoucherScratched(appState, day);
+      soundscape.playStarOpen(day);
+      haptics.tick();
+      syncAllViews();
+    },
+    onQuizAnswer: (day: number, correct: boolean) => {
+      void soundscape.unlock();
+      haptics.tick();
+      if (correct) {
+        appState = markQuizSolved(appState, day);
+        soundscape.playStarOpen(day);
+        syncAllViews();
+      } else {
+        soundscape.playLockedTap();
+      }
     },
     onTogglePreviewSecret: () => {
       previewAll = !previewAll;
