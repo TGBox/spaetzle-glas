@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ADVENT_DAYS } from "../src/data/adventDays";
+import {
+  canSpellWithLetters,
+  getBeeLetters,
+  normalizeBeeWord,
+} from "../src/domain/beeRules";
 import type { CardType } from "../src/types/advent";
 
 describe("ADVENT_DAYS dataset integrity", () => {
@@ -9,7 +14,7 @@ describe("ADVENT_DAYS dataset integrity", () => {
     expect(days).toEqual(Array.from({ length: 24 }, (_, idx) => idx + 1));
   });
 
-  it("covers all seven card formats with non-empty German content", () => {
+  it("covers all eight card formats with non-empty German content", () => {
     const seenTypes = new Set<CardType>();
 
     for (const entry of ADVENT_DAYS) {
@@ -36,6 +41,26 @@ describe("ADVENT_DAYS dataset integrity", () => {
           expect(place.photos.length).toBeGreaterThan(0);
         }
       }
+      if (entry.type === "bee") {
+        const bee = entry.bee;
+        expect(bee).toBeDefined();
+        if (bee) {
+          const letters = getBeeLetters(bee);
+          expect(letters).toHaveLength(9);
+          expect(letters).toContain(normalizeBeeWord(bee.center));
+          expect(bee.words.some((word) => word.special)).toBe(true);
+          const seen = new Set<string>();
+          for (const { word } of bee.words) {
+            const normalized = normalizeBeeWord(word);
+            // Every word must be playable, otherwise she could never finish.
+            expect(Array.from(normalized).length).toBeGreaterThanOrEqual(3);
+            expect(normalized).toContain(normalizeBeeWord(bee.center));
+            expect(canSpellWithLetters(normalized, letters)).toBe(true);
+            expect(seen.has(normalized)).toBe(false);
+            seen.add(normalized);
+          }
+        }
+      }
       if (entry.type === "quiz") {
         const quiz = entry.quiz;
         expect(quiz?.question.trim().length).toBeGreaterThan(0);
@@ -54,6 +79,7 @@ describe("ADVENT_DAYS dataset integrity", () => {
         "media",
         "map",
         "quiz",
+        "bee",
       ])
     );
   });

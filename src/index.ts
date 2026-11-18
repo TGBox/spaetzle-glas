@@ -12,6 +12,7 @@ import {
 import {
   loadAppState,
   markDayOpened,
+  addBeeFoundWord,
   markQuizSolved,
   markVoucherScratched,
   redeemVoucherDay,
@@ -289,6 +290,27 @@ function bootstrap(): void {
       } else {
         soundscape.playLockedTap();
       }
+    },
+    onBeeWordFound: (
+      day: number,
+      word: string,
+      isPangram: boolean,
+      solvesPuzzle: boolean
+    ) => {
+      void soundscape.unlock();
+      haptics.tick();
+      appState = addBeeFoundWord(appState, day, word);
+      if (isPangram || solvesPuzzle) {
+        soundscape.playStarOpen(day);
+      } else {
+        soundscape.playChargeStep(Math.min(1, Array.from(word).length / 9));
+      }
+      syncAllViews();
+    },
+    onBeeMiss: () => {
+      void soundscape.unlock();
+      haptics.tick();
+      soundscape.playLockedTap();
     },
     onTogglePreviewSecret: () => {
       previewAll = !previewAll;

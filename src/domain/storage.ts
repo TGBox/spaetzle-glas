@@ -35,6 +35,7 @@ export function createDefaultAppState(): PersistedAppState {
     muted: false,
     scratchedVouchers: [],
     solvedQuizzes: [],
+    beeFoundWords: {},
   };
 }
 
@@ -58,6 +59,24 @@ function sanitizeDayList(raw: unknown): number[] {
     }
   }
   return Array.from(unique).sort((a, b) => a - b);
+}
+
+function sanitizeBeeFoundWords(raw: unknown): Record<number, string[]> {
+  if (!isRecord(raw)) {
+    return {};
+  }
+  const result: Record<number, string[]> = {};
+  for (const [key, val] of Object.entries(raw)) {
+    const day = Number(key);
+    if (!Number.isInteger(day) || day < 1 || day > 24 || !Array.isArray(val)) {
+      continue;
+    }
+    const words = val.filter(
+      (item): item is string => typeof item === "string" && item.length > 0
+    );
+    result[day] = Array.from(new Set(words));
+  }
+  return result;
 }
 
 function sanitizeRedeemedVouchers(raw: unknown): Record<number, string> {
@@ -101,6 +120,7 @@ export function loadAppState(
       muted: Boolean(parsed.muted),
       scratchedVouchers: sanitizeDayList(parsed.scratchedVouchers),
       solvedQuizzes: sanitizeDayList(parsed.solvedQuizzes),
+      beeFoundWords: sanitizeBeeFoundWords(parsed.beeFoundWords),
     };
   } catch {
     return createDefaultAppState();
@@ -188,6 +208,27 @@ export function markQuizSolved(
   const next: PersistedAppState = {
     ...state,
     solvedQuizzes: [...state.solvedQuizzes, day].sort((a, b) => a - b),
+  };
+  saveAppState(next, storage);
+  return next;
+}
+
+/**
+ * Adds a found Buchstabiene word for a day (ignores duplicates).
+ */
+export function addBeeFoundWord(
+  state: PersistedAppState,
+  day: number,
+  word: string,
+  storage: StorageLike = getDefaultStorage()
+): PersistedAppState {
+  const existing = state.beeFoundWords[day] ?? [];
+  if (!isValidDay(day) || word.length === 0 || existing.includes(word)) {
+    return state;
+  }
+  const next: PersistedAppState = {
+    ...state,
+    beeFoundWords: { ...state.beeFoundWords, [day]: [...existing, word] },
   };
   saveAppState(next, storage);
   return next;

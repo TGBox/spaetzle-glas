@@ -5,7 +5,8 @@ export type CardType =
   | "compliment"
   | "media"
   | "map"
-  | "quiz";
+  | "quiz"
+  | "bee";
 
 export type StarVisualState =
   | "locked"
@@ -32,6 +33,24 @@ export interface QuizContent {
   readonly wrongHint?: string;
 }
 
+/** One accepted word of a Buchstabiene puzzle. */
+export interface BeeWord {
+  readonly word: string;
+  /** "Our" words glow golden when found and unlock puzzles without a pangram. */
+  readonly special?: boolean;
+  /** Short line shown when a special word is found ("why this word matters"). */
+  readonly note?: string;
+}
+
+/** A Buchstabiene / Spelling Bee puzzle with a fixed, hand-picked word list. */
+export interface BeePuzzle {
+  /** The nine tiles, duplicates allowed (e.g. "STRAßBURG" has two R). */
+  readonly letters: string;
+  /** The center tile; every word must contain it. */
+  readonly center: string;
+  readonly words: readonly BeeWord[];
+}
+
 export interface AdventDay {
   readonly day: number;
   readonly title: string;
@@ -49,6 +68,7 @@ export interface AdventDay {
   readonly mediaCaption?: string;
   readonly places?: readonly MapPlace[];
   readonly quiz?: QuizContent;
+  readonly bee?: BeePuzzle;
 }
 
 export interface PersistedAppState {
@@ -60,4 +80,6 @@ export interface PersistedAppState {
   readonly scratchedVouchers: readonly number[];
   /** Quiz days that have been answered correctly. */
   readonly solvedQuizzes: readonly number[];
+  /** Words found per Buchstabiene day. */
+  readonly beeFoundWords: Readonly<Record<number, readonly string[]>>;
 }

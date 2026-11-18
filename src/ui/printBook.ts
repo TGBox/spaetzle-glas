@@ -1,3 +1,4 @@
+import { isBeeSolved, normalizeBeeWord } from "../domain/beeRules";
 import type { AdventDay, PersistedAppState } from "../types/advent";
 import { escapeHtml } from "./html";
 
@@ -77,6 +78,26 @@ function buildDayBody(day: AdventDay, state: PersistedAppState): string {
         : "";
       const photo = day.photoUrl ? photoMarkup(day.photoUrl, day.title) : "";
       return `${question}${photo}${messageMarkup(day.message)}`;
+    }
+    case "bee": {
+      const found = state.beeFoundWords[day.day] ?? [];
+      const special = new Set(
+        (day.bee?.words ?? [])
+          .filter((entry) => entry.special)
+          .map((entry) => normalizeBeeWord(entry.word))
+      );
+      const wordList = [...found]
+        .sort((a, b) => a.localeCompare(b, "de"))
+        .map((word) =>
+          special.has(word) ? `<strong>${escapeHtml(word)}</strong>` : escapeHtml(word)
+        )
+        .join(" · ");
+      const solved = day.bee ? isBeeSolved(day.bee, found) : false;
+      const photo = solved && day.photoUrl ? photoMarkup(day.photoUrl, day.title) : "";
+      return `
+        <p class="print-caption">Gefundene Wörter: ${wordList || "noch keine"}</p>
+        ${photo}
+        ${solved ? messageMarkup(day.message) : `<p class="print-note">Die Botschaft wartet noch im Glas.</p>`}`;
     }
     case "letter":
       return messageMarkup(day.message);

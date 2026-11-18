@@ -30,6 +30,8 @@ export const MISSED_DAY_NOTES: readonly string[] = [
  *    copy your files into `public/media/` (for example `public/media/tag-10.m4a` or
  *    `public/media/tag-15.mp4`) and set `audioUrl`, `videoUrl`, and optionally `videoPosterUrl`.
  * 4. Every "voucher" card is covered by a scratch-off foil; nothing to configure.
+ * 6. A "bee" card is a Buchstabiene: nine `letters`, a `center` letter and the accepted
+ *    `words` (only these count). Mark your own words with `special: true` and a `note`.
  * 5. A "map" card lists `places` (name, coordinates, 1..n photos each); a "quiz" card has a
  *    `quiz` with a question, answer options and `correctIndex`.
  */
@@ -181,12 +183,59 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
   },
   {
     day: 12,
-    title: "Halbzeit im Lichterglas",
-    subtitle: "Kleiner Lichtfunke",
-    type: "compliment",
+    title: "Die Buchstabiene",
+    subtitle: "Halbzeit-Rätsel",
+    type: "bee",
     yearBadge: "12 von 24",
-    complimentHighlight:
-      "Du machst selbst gewöhnliche Dienstage zu Tagen, auf die ich mich morgens freue.",
+    // The message (and optionally `photoUrl`) appears once the pangram is found.
+    // Add a `note` to the special words: it is shown when she finds them.
+    bee: {
+      letters: "STRAßBURG",
+      center: "U",
+      words: [
+        { word: "STRAßBURG", special: true },
+        { word: "BUS", special: true },
+        { word: "GRUß" },
+        { word: "STRAUß" },
+        { word: "BURG" },
+        { word: "BRUST" },
+        { word: "STAUB" },
+        { word: "RAUB" },
+        { word: "RAUBS" },
+        { word: "RAUBT" },
+        { word: "GURT" },
+        { word: "GURTS" },
+        { word: "STUR" },
+        { word: "BAU" },
+        { word: "BAUS" },
+        { word: "BAUT" },
+        { word: "BAUST" },
+        { word: "TUBA" },
+        { word: "TUBAS" },
+        { word: "TABU" },
+        { word: "TABUS" },
+        { word: "STAU" },
+        { word: "TRUG" },
+        { word: "RUß" },
+        { word: "TAUB" },
+        { word: "GRAU" },
+        { word: "GRAUS" },
+        { word: "BRAUT" },
+        { word: "BRUT" },
+        { word: "GUT" },
+        { word: "GUTS" },
+        { word: "AUS" },
+        { word: "SAU" },
+        { word: "TAU" },
+        { word: "TAUS" },
+        { word: "GRUB" },
+        { word: "TRAU" },
+        { word: "BUG" },
+        { word: "RAUS" },
+        { word: "SAUGT" },
+        { word: "SURRT" },
+      ],
+    },
     message:
       "Die Hälfte der Sterne leuchtet schon! Und das Beste daran: Nach all der Zeit wird es mit dir einfach immer schöner statt gewöhnlich.",
   },
@@ -265,12 +314,41 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
   },
   {
     day: 19,
-    title: "Du bist mein sicherer Hafen",
-    subtitle: "Kleiner Lichtfunke",
-    type: "compliment",
+    title: "Noch eine Buchstabiene",
+    subtitle: "Zwei Wörter von uns sind darin versteckt",
+    type: "bee",
     yearBadge: "Herzstück",
-    complimentHighlight:
-      "Bei dir muss ich nie etwas vorspielen — neben dir darf alles einfach leicht sein.",
+    // No pangram here: the message opens once both special words are found.
+    bee: {
+      letters: "BRIEFKLÖP",
+      center: "E",
+      words: [
+        { word: "BRIEF", special: true },
+        { word: "KLÖPFER", special: true },
+        { word: "ELF" },
+        { word: "REIF" },
+        { word: "KERL" },
+        { word: "PFEIL" },
+        { word: "LIEF" },
+        { word: "RIEF" },
+        { word: "FIEL" },
+        { word: "LEIB" },
+        { word: "BIER" },
+        { word: "KIEL" },
+        { word: "LIEB" },
+        { word: "BEI" },
+        { word: "BEIL" },
+        { word: "FEIL" },
+        { word: "KEIL" },
+        { word: "KÖPFE" },
+        { word: "BÖE" },
+        { word: "BIKER" },
+        { word: "BLEI" },
+        { word: "BREI" },
+        { word: "FREI" },
+        { word: "PRIEL" },
+      ],
+    },
     message:
       "Nach fünf Jahren ist das vielleicht das größte Geschenk überhaupt: einfach nebeneinander atmen zu können und zu wissen, dass man angekommen ist.",
   },

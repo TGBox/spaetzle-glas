@@ -12,6 +12,8 @@ import type {
   PersistedAppState,
   StarVisualState,
 } from "../types/advent";
+import { isBeeSolved } from "../domain/beeRules";
+import { BeeBoard, type BeeSession, createBeeSession } from "./beeCard";
 import { escapeHtml } from "./html";
 import {
   computeVisibleTiles,
@@ -33,6 +35,13 @@ export interface UiHandlers {
   readonly onRedeemVoucher: (day: number) => void;
   readonly onVoucherScratched: (day: number) => void;
   readonly onQuizAnswer: (day: number, correct: boolean) => void;
+  readonly onBeeWordFound: (
+    day: number,
+    word: string,
+    isPangram: boolean,
+    solvesPuzzle: boolean
+  ) => void;
+  readonly onBeeMiss: () => void;
   readonly onTogglePreviewSecret: () => void;
 }
 
@@ -63,6 +72,8 @@ function getCardTypeIcon(type: CardType): string {
       return "🗺️";
     case "quiz":
       return "❓";
+    case "bee":
+      return "🐝";
   }
 }
 
@@ -172,6 +183,8 @@ export class AppUi {
   private currentLateNote: string | null = null;
   private selectedPlaceIndex = 0;
   private readonly printBook: HTMLElement;
+  private readonly beeSessions = new Map<number, BeeSession>();
+  private activeBeeBoard: BeeBoard | null = null;
   private sensorsLive = false;
   private hintContext: {
     readonly constellationMode: boolean;
@@ -385,6 +398,14 @@ export class AppUi {
     });
 
     window.addEventListener("keydown", (event) => {
+      if (
+        this.activeBeeBoard &&
+        !this.cardOverlay.classList.contains("is-hidden") &&
+        this.activeBeeBoard.handleKey(event)
+      ) {
+        event.preventDefault();
+        return;
+      }
       if (event.key === "Escape") {
         this.closeCardModal();
         this.closeGalleryOverlay();
@@ -559,6 +580,7 @@ export class AppUi {
     this.stopActiveMedia();
     this.currentModalDay = null;
     this.currentLateNote = null;
+    this.activeBeeBoard = null;
     this.cardOverlay.classList.add("is-hidden");
   }
 
@@ -572,6 +594,7 @@ export class AppUi {
 
   private renderCardContent(day: AdventDay, state: PersistedAppState): void {
     this.stopActiveMedia();
+    this.activeBeeBoard = null;
 
     const typeClass = `is-${day.type}`;
     let displayTitle = day.title;
@@ -698,6 +721,23 @@ export class AppUi {
         <div class="map-chips">${chipsHtml}</div>
         <div class="map-place js-map-place"></div>
       `;
+    } else if (day.type === "bee") {
+      const solved = day.bee
+        ? isBeeSolved(day.bee, state.beeFoundWords[day.day] ?? [])
+        : false;
+      const photoHtml =
+        solved && day.photoUrl
+          ? `<div class="card-polaroid-frame"><div class="card-polaroid-media"><img src="${escapeHtml(day.photoUrl)}" alt="${escapeHtml(day.title)}" /></div></div>`
+          : "";
+      const revealHtml = solved
+        ? `<div class="bee-reveal js-bee-reveal">${photoHtml}<p class="card-message">${escapeHtml(day.message)}</p></div>`
+        : "";
+
+      bodySpecificHtml = `
+        <p class="bee-intro">Bilde Wörter mit dem Buchstaben in der Mitte. Jeder Buchstabe zählt höchstens einmal.</p>
+        <div class="bee-board js-bee-board"></div>
+        ${revealHtml}
+      `;
     } else if (day.type === "quiz") {
       const quiz = day.quiz;
       const solved = state.solvedQuizzes.includes(day.day);
@@ -769,6 +809,36 @@ export class AppUi {
 
     if (day.type === "map") {
       this.mountMap(day.places ?? []);
+    }
+
+    const beeRoot = this.cardContainer.querySelector<HTMLElement>(".js-bee-board");
+    if (day.type === "bee" && day.bee && beeRoot) {
+      const puzzle = day.bee;
+      let session = this.beeSessions.get(day.day);
+      if (!session) {
+        session = createBeeSession(puzzle);
+        this.beeSessions.set(day.day, session);
+      }
+      const board = new BeeBoard(beeRoot, puzzle, session, {
+        onWordFound: (result, solvesPuzzle) => {
+          this.handlers.onBeeWordFound(
+            day.day,
+            result.word,
+            result.isPangram,
+            solvesPuzzle
+          );
+        },
+        onMiss: () => this.handlers.onBeeMiss(),
+      });
+      board.render(state.beeFoundWords[day.day] ?? []);
+      this.activeBeeBoard = board;
+
+      if (session.scrollToReveal) {
+        session.scrollToReveal = false;
+        this.cardContainer
+          .querySelector(".js-bee-reveal")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     }
 
     const quiz = day.quiz;

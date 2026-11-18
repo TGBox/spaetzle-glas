@@ -76,4 +76,26 @@ describe("buildPrintBookHtml", () => {
     );
     expect(tricky).not.toContain("<b>Hallo</b>");
   });
+
+  it("prints found Buchstabiene words and keeps the message closed until solved", () => {
+    const beeDay = ADVENT_DAYS.find((day) => day.type === "bee" && day.day === 12);
+    if (!beeDay) {
+      throw new Error("dataset is missing the day 12 Buchstabiene");
+    }
+    const unsolved = {
+      ...createDefaultAppState(),
+      openedDays: [12],
+      beeFoundWords: { 12: ["GRUß", "BUS"] },
+    };
+    const unsolvedHtml = buildPrintBookHtml(ADVENT_DAYS, unsolved);
+    expect(unsolvedHtml).toContain("GRUß");
+    expect(unsolvedHtml).toContain("<strong>BUS</strong>");
+    expect(unsolvedHtml).not.toContain(beeDay.message);
+
+    const solved = {
+      ...unsolved,
+      beeFoundWords: { 12: ["GRUß", "BUS", "STRAßBURG"] },
+    };
+    expect(buildPrintBookHtml(ADVENT_DAYS, solved)).toContain(beeDay.message);
+  });
 });

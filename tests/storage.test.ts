@@ -4,6 +4,7 @@ import {
   formatGermanRedeemDate,
   loadAppState,
   markDayOpened,
+  addBeeFoundWord,
   markQuizSolved,
   markVoucherScratched,
   redeemVoucherDay,
@@ -69,9 +70,26 @@ describe("storage persistence", () => {
       JSON.stringify({ unlockedJar: true, openedDays: [1], muted: false })
     );
     const legacy = loadAppState(storage);
+    expect(legacy.beeFoundWords).toEqual({});
     expect(legacy.scratchedVouchers).toEqual([]);
     expect(legacy.solvedQuizzes).toEqual([]);
     expect(legacy.openedDays).toEqual([1]);
+  });
+
+  it("persists found Buchstabiene words per day without duplicates", () => {
+    const storage = createMockStorage();
+    let state = loadAppState(storage);
+
+    state = addBeeFoundWord(state, 12, "GRUß", storage);
+    state = addBeeFoundWord(state, 12, "BUS", storage);
+    state = addBeeFoundWord(state, 12, "GRUß", storage);
+    state = addBeeFoundWord(state, 19, "BRIEF", storage);
+    state = addBeeFoundWord(state, 30, "BUS", storage);
+
+    expect(loadAppState(storage).beeFoundWords).toEqual({
+      12: ["GRUß", "BUS"],
+      19: ["BRIEF"],
+    });
   });
 
   it("formats German redeem dates with leading zeros", () => {
