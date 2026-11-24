@@ -12,7 +12,7 @@ export const JAR_PASSWORDS: readonly string[] = ["Fusili", "Fusilli"];
  * `public/media/` (MP3 or M4A/AAC work on iPhone and Mac). If the file is missing,
  * the jar falls back to its random wind-chime notes. Set to null to always use the chimes.
  */
-export const MUSIC_BOX_SONG_URL: string | null = "./media/just-the-two-of-us.mp3";
+export const MUSIC_BOX_SONG_URL: string | null = "./media/custom-music.mp3";
 
 /**
  * Teasing notes shown on a card that she opens after its day has passed.
