@@ -14,6 +14,15 @@ interface WebkitWindow {
   webkitAudioContext?: typeof AudioContext;
 }
 
+/** Something that plays through the soundscape once audio is unlocked (e.g. the music box). */
+export interface SoundscapeAttachable {
+  attach(context: AudioContext, destination: AudioNode): void;
+}
+
+interface AudioSessionNavigator {
+  audioSession?: { type: string };
+}
+
 /**
  * Procedural Web Audio synthesizer generating pentatonic wind chimes,
  * warm star-opening arpeggios, cork-pop unlock effects, and tactile stamps.
@@ -23,6 +32,7 @@ export class SoundscapeController {
   private masterGain: GainNode | null = null;
   private muted = false;
   private lastChimeTimeMs = 0;
+  private readonly attachables: SoundscapeAttachable[] = [];
 
   constructor(initialMuted = false) {
     this.muted = initialMuted;
@@ -41,6 +51,17 @@ export class SoundscapeController {
   }
 
   /**
+   * Registers something that should play through the master gain. It is connected
+   * during the first unlock (a user gesture), or right away if audio is already unlocked.
+   */
+  public addAttachable(attachable: SoundscapeAttachable): void {
+    this.attachables.push(attachable);
+    if (this.ctx && this.masterGain) {
+      attachable.attach(this.ctx, this.masterGain);
+    }
+  }
+
+  /**
    * Must be invoked inside a direct user gesture (click / touchend) for iOS Safari.
    */
   public async unlock(): Promise<void> {
@@ -49,6 +70,16 @@ export class SoundscapeController {
     }
 
     if (!this.ctx) {
+      // iOS 17+: play even when the silent switch is on (like a music app, not a ringtone).
+      try {
+        const session = (navigator as AudioSessionNavigator).audioSession;
+        if (session) {
+          session.type = "playback";
+        }
+      } catch {
+        // Older iOS / other browsers: the silent switch keeps muting Web Audio.
+      }
+
       const AudioCtx =
         window.AudioContext ??
         (window as unknown as WebkitWindow).webkitAudioContext;
@@ -59,6 +90,9 @@ export class SoundscapeController {
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = this.muted ? 0 : 0.6;
       this.masterGain.connect(this.ctx.destination);
+      for (const attachable of this.attachables) {
+        attachable.attach(this.ctx, this.masterGain);
+      }
     }
 
     if (this.ctx.state === "suspended") {
