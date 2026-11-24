@@ -9,18 +9,16 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  # deploy-pages looks up the uploaded artifact via the Actions API; private repos need this.
-  actions: read
 
 concurrency:
   group: "pages"
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # Build and upload in one job, deploy in a second one. In a single job deploy-pages
+  # can look for the artifact a fraction of a second after the upload and find nothing
+  # (actions/deploy-pages#451). The job boundary gives the artifact time to show up.
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -48,6 +46,13 @@ jobs:
         with:
           path: './dist'
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
