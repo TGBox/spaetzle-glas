@@ -1,7 +1,5 @@
 import "./styles/main.css";
-import { MusicBox } from "./audio/musicBox";
 import { SoundscapeController } from "./audio/soundscape";
-import { MUSIC_BOX_SONG_URL } from "./data/adventDays";
 import {
   getActiveTodayDay,
   getAdventDayByNumber,
@@ -43,10 +41,6 @@ function readInitialPreviewFlag(): boolean {
   return params.get("preview") === "true" || params.get("preview") === "1";
 }
 
-/** Music box wind-up per shake (scaled by its strength) and per star collision (by intensity). */
-const MUSIC_BOX_WIND_PER_SHAKE = 0.45;
-const MUSIC_BOX_WIND_PER_COLLISION = 0.06;
-
 /** Charge added to today's star per detected shake: base plus a share of the shake strength. */
 const WAKE_CHARGE_BASE = 0.07;
 const WAKE_CHARGE_PER_STRENGTH = 0.11;
@@ -77,10 +71,6 @@ function bootstrap(): void {
   const physics = new StarPhysicsWorld();
   const soundscape = new SoundscapeController(appState.muted);
   const haptics = new Haptics();
-  const musicBox = MUSIC_BOX_SONG_URL ? new MusicBox(MUSIC_BOX_SONG_URL) : null;
-  if (musicBox) {
-    soundscape.addAttachable(musicBox);
-  }
 
   let jarScene: JarScene | null = null;
   let motionController: MotionController | null = null;
@@ -194,9 +184,6 @@ function bootstrap(): void {
       });
     }
     jarScene?.registerShakeBurst(0.35 + strength * 0.5);
-    if (!ui.isOverlayOpen()) {
-      musicBox?.windUp(strength * MUSIC_BOX_WIND_PER_SHAKE);
-    }
 
     if (constellationMode || ui.isOverlayOpen()) {
       return;
@@ -358,13 +345,7 @@ function bootstrap(): void {
     onStarTap: handleSelectStar,
     onCollision: (intensity, day) => {
       // Stay quiet while a card is open so chimes never talk over her music or videos.
-      if (ui.isOverlayOpen()) {
-        return;
-      }
-      if (musicBox?.isAvailable()) {
-        // The song replaces the random chimes; collisions keep it wound up.
-        musicBox.windUp(intensity * MUSIC_BOX_WIND_PER_COLLISION);
-      } else {
+      if (!ui.isOverlayOpen()) {
         soundscape.playCollisionChime(intensity, day);
       }
     },
@@ -376,11 +357,7 @@ function bootstrap(): void {
   });
 
   // Today's star slowly falls back asleep when she stops shaking.
-  // The music box also rests while a card, the gallery or a lock screen is open.
   window.setInterval(() => {
-    musicBox?.setSuspended(
-      ui.isOverlayOpen() || document.visibilityState !== "visible"
-    );
     if (todayCharge > 0) {
       setTodayCharge(todayCharge - WAKE_CHARGE_DECAY_PER_TICK);
     }
