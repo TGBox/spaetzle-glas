@@ -8,12 +8,14 @@ import {
 import type {
   AdventDay,
   CardType,
+  MapPhoto,
   MapPlace,
   PersistedAppState,
   StarVisualState,
 } from "../types/advent";
 import { isBeeSolved } from "../domain/beeRules";
 import { BeeBoard, type BeeSession, createBeeSession } from "./beeCard";
+import { mapPhotoCaption, mapPhotoUrl } from "../domain/mapPhotos";
 import { escapeHtml } from "./html";
 import {
   computeVisibleTiles,
@@ -1022,8 +1024,11 @@ export class AppUi {
       .join(" · ");
     const photosHtml = place.photos
       .map(
-        (url, index) =>
-          `<figure class="map-photo"><button type="button" class="map-photo-open js-map-photo-open" data-index="${index}" aria-label="Foto ${index + 1} groß anzeigen"><img loading="lazy" decoding="async" src="${escapeHtml(url)}" alt="${escapeHtml(place.name)}, Foto ${index + 1}" data-url="${escapeHtml(url)}" /></button></figure>`
+        (photo, index) => {
+          const url = mapPhotoUrl(photo);
+          const caption = mapPhotoCaption(photo);
+          return `<figure class="map-photo${caption ? " has-caption" : ""}"><button type="button" class="map-photo-open js-map-photo-open" data-index="${index}" aria-label="Foto ${index + 1} groß anzeigen"><img loading="lazy" decoding="async" src="${escapeHtml(url)}" alt="${escapeHtml(caption ?? `${place.name}, Foto ${index + 1}`)}" data-url="${escapeHtml(url)}" /></button>${caption ? `<figcaption class="map-photo-caption">${escapeHtml(caption)}</figcaption>` : ""}</figure>`;
+        }
       )
       .join("");
     const countLabel =
@@ -1108,7 +1113,7 @@ export class AppUi {
    */
   private openPhotoViewer(
     title: string,
-    photos: readonly string[],
+    photos: readonly MapPhoto[],
     startIndex: number,
     onClose: (index: number) => void
   ): void {
@@ -1120,6 +1125,7 @@ export class AppUi {
     viewer.setAttribute("aria-label", title);
     viewer.innerHTML = `
       <img class="photo-viewer-img js-viewer-img" alt="" />
+      <p class="photo-viewer-caption js-viewer-caption" hidden></p>
       <div class="photo-viewer-top">
         <span class="photo-viewer-title">${escapeHtml(title)} · <span class="js-viewer-counter"></span></span>
         <button type="button" class="photo-viewer-close js-viewer-close" aria-label="Schließen">✕</button>
@@ -1137,15 +1143,21 @@ export class AppUi {
     const show = (next: number): void => {
       index = (next + photos.length) % photos.length;
       if (img) {
-        img.src = photos[index];
+        img.src = mapPhotoUrl(photos[index]);
         img.alt = `${title}, Foto ${index + 1}`;
       }
       if (counter) {
         counter.textContent = `${index + 1} / ${photos.length}`;
       }
+      const captionElement = viewer.querySelector<HTMLElement>(".js-viewer-caption");
+      const caption = mapPhotoCaption(photos[index]);
+      if (captionElement) {
+        captionElement.textContent = caption ?? "";
+        captionElement.hidden = caption === null;
+      }
       // Warm up the neighbours so swiping feels instant.
       [index - 1, index + 1].forEach((neighbour) => {
-        const url = photos[(neighbour + photos.length) % photos.length];
+        const url = mapPhotoUrl(photos[(neighbour + photos.length) % photos.length]);
         const preload = new Image();
         preload.src = url;
       });

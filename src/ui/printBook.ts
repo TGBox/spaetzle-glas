@@ -1,5 +1,6 @@
 import { isBeeSolved, normalizeBeeWord } from "../domain/beeRules";
 import type { AdventDay, PersistedAppState } from "../types/advent";
+import { mapPhotoCaption, mapPhotoUrl } from "../domain/mapPhotos";
 import { escapeHtml } from "./html";
 
 function photoMarkup(url: string, alt: string): string {
@@ -67,7 +68,10 @@ function buildDayBody(day: AdventDay, state: PersistedAppState): string {
             .map(escapeHtml)
             .join(" · ");
           const photos = place.photos
-            .map((url) => photoMarkup(url, place.name))
+            .map((photo) => {
+              const caption = mapPhotoCaption(photo);
+              return `${photoMarkup(mapPhotoUrl(photo), caption ?? place.name)}${caption ? `<p class="print-caption">${escapeHtml(caption)}</p>` : ""}`;
+            })
             .join("");
           return `
             <div class="print-place">

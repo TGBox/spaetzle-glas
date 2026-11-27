@@ -42,7 +42,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     subtitle: "Jubiläums-Auftakt",
     type: "letter",
     yearBadge: "5 Jahre • 01.12.2021",
-    message: "Mein liebes Spätzle,\n\nheute sind es fünf Jahre. 🥰 Und weil ich dir zu besonderen Anlässen ja meistens was dichte, fang ich auch heute so an:\n\nKurz vor Mitternacht hab ich dir damals geschrieben, dass ich mir jetzt ein Gesicht zu deinen Nachrichten vorstellen kann, aber dabei ist's nicht geblieben.\nDenn aus dem Gesicht wurde ein Lachen und aus dem Lachen ein Wir, und fünf Jahre später sitz ich immer noch hier und schreib dir. 😙\n\nDieses Glas gehört die nächsten 24 Tage dir. Schüttel es, wenn du ein bisschen Funkeln brauchst, und hol dir jeden Tag einen neuen Stern raus. ;)",
+    message: "Mein liebes Spätzle,\n\nheute sind es fünf Jahre. 🥰 Fünf Jahre voller Nachrichten, Sprachnachrichten, Zugfahrten zwischen Ulm und Heidelberg und Abende, an denen wir uns einfach nicht von unseren Handys losreißen konnten. Und weil ich dir zu besonderen Anlässen ja meistens was dichte, fang ich auch heute so an:\n\nKurz vor Mitternacht hab ich dir damals geschrieben, dass ich mir jetzt ein Gesicht zu deinen Nachrichten vorstellen kann, aber dabei ist's nicht geblieben.\nDenn aus dem Gesicht wurde ein Lachen und aus dem Lachen ein Wir, und fünf Jahre später sitz ich immer noch hier und schreib dir. 😙\nAus ein paar Zeilen wurden lange Abende und aus den Abenden ganze Jahre, voller Lachen, Reden, Reisen und ab und zu auch mal ein paar graue Haare. 😄\nUnd auch wenn ich nicht weiß, was die nächsten Seiten unserer Geschichte erzählen, bin ich so froh, dass wir uns damals getraut haben, einander zu wählen.\n\nDieses Glas gehört die nächsten 24 Tage dir. In jedem Stern steckt ein kleines Stück von uns: Erinnerungen, Fotos, ein paar Rätsel und ein paar Zeilen von mir. Schüttel es, wenn du ein bisschen Funkeln brauchst, und hol dir jeden Tag einen neuen Stern raus. ;)",
   },
   {
     day: 2,
@@ -61,7 +61,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     subtitle: "Wie wir zu unseren Namen kamen",
     type: "letter",
     yearBadge: "Seit 2022 & 2023",
-    message: "Am 7. Februar 2022 hab ich dich zum ersten Mal Spätzle genannt, und seitdem bist du's geblieben. 😄\n\nIch nenn dich Spätzle und du nennst mich Fusili, und ich glaub so ein Nudelpaar gab's bisher noch nie.\nDas eine schwäbisch und gemütlich, das andre ein bisschen verdreht, doch man sieht ja jeden Tag, wie gut das zusammengeht. ;)",
+    message: "Laut WhatsApp hab ich dich am 7. Februar 2022 zum ersten Mal Spätzle genannt, und seitdem bist du's geblieben. Mein Fusili hast du dir dann fast ein Jahr später ausgedacht, am 23. Januar 2023. 😄 Ich find's bis heute herrlich, dass ausgerechnet zwei Nudeln unsere Kosenamen geworden sind.\n\nIch nenn dich Spätzle und du nennst mich Fusili, und ich glaub so ein Nudelpaar gab's bisher noch nie.\nDas eine schwäbisch und gemütlich, das andre ein bisschen verdreht, doch man sieht ja jeden Tag, wie gut das zusammengeht. ;)\nDu hast mal gesagt, Kässpätzle sind einfach unschlagbar, und ich geb dir recht, denn mit dir als Spätzle ist sogar der grauste Tag nicht mehr ganz so schlecht.\nUnd ich bin halt die Nudel, die sich in jede Richtung ein bisschen verdreht, aber ich glaub, genau deshalb haben wir zwei uns immer so gut verstanden, ganz egal, wie's grad steht. 😙",
   },
   {
     day: 4,
@@ -70,7 +70,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     type: "compliment",
     yearBadge: "Was ich an dir mag",
     complimentHighlight: "Wenn's mir schlecht geht, fragst du so lange nach, bis ich selbst verstehe, was eigentlich los ist.",
-    message: "Du hast nie einfach nur „wird schon“ gesagt, sondern dir Zeit genommen und mit mir sortiert. Das hat mir öfter geholfen, als ich's dir wahrscheinlich je gesagt hab. 😘",
+    message: "Du hast nie einfach nur „wird schon“ gesagt, sondern nachgefragt: Was genau beschäftigt dich? Was steckt da eigentlich dahinter? Manchmal fand ich das im ersten Moment fast ein bisschen anstrengend, aber hinterher war es fast immer genau das, was ich gebraucht hab. 😅\n\nDas hat mir öfter geholfen, als ich's dir wahrscheinlich je gesagt hab. Danke dafür. 😘",
   },
   {
     day: 5,
@@ -89,7 +89,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     subtitle: "Ein kleiner Gruß",
     type: "letter",
     yearBadge: "6. Dezember",
-    message: "Heute kommt der Nikolaus, doch weil ich leider nicht in deinen Stiefel passe, schick ich dir ein paar Zeilen ins Glas, damit ich dich heut nicht ganz ohne was lasse. 😄\nUnd auch wenn wir uns grad seltener schreiben und sich bei uns so einiges dreht, sollst du wissen, dass ich an dich denk, ganz egal wie es weitergeht. 😘",
+    message: "Heute kommt der Nikolaus, doch weil ich leider nicht in deinen Stiefel passe, schick ich dir ein paar Zeilen ins Glas, damit ich dich heut nicht ganz ohne was lasse. 😄\nStatt Nüssen, Mandarinen und Schokolade gibt's von mir halt Reime, die sind zwar nicht ganz so süß, aber dafür kalorienfrei und ohne Keime. 😜\nUnd auch wenn wir uns grad seltener schreiben und sich bei uns so einiges dreht, sollst du wissen, dass ich an dich denk, ganz egal wie es weitergeht.\nAlso lass dich heut ein bisschen verwöhnen, gönn dir was Schönes und vergiss dabei nicht: Irgendwo sitzt einer, dem zaubert schon der Gedanke an dich ein Lächeln ins Gesicht. 😘",
   },
   {
     day: 7,
@@ -97,7 +97,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     subtitle: "Quiz: unsere Emojis",
     type: "quiz",
     yearBadge: "127.000 Nachrichten",
-    message: "Über 22.000 Mal 😅 und knapp dahinter fast 20.000 Küsschen. 😄 Ich glaub, das fasst uns ziemlich gut zusammen: ein bisschen verlegen, ein bisschen chaotisch und trotzdem immer mit nem Kuss hinterher. 😘",
+    message: "Über 22.000 Mal 😅 und knapp dahinter fast 20.000 Küsschen. 😄 Ich glaub, das fasst uns ziemlich gut zusammen: ein bisschen verlegen, ein bisschen chaotisch und trotzdem immer mit nem Kuss hinterher.\n\nEhrlich gesagt hätte ich selbst auf 😘 getippt. Aber vielleicht sagt's ja auch was Schönes über uns, dass wir so oft über uns selbst lachen konnten. 😘",
     quiz: {
       question: "Welches Emoji haben wir uns in fünf Jahren am häufigsten geschickt?",
       options: ["😘", "😅", "🙈"],
@@ -112,24 +112,24 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     type: "compliment",
     yearBadge: "Was ich an dir mag",
     complimentHighlight: "Wenn du für mich spielst und singst, wird alles andere für einen Moment ganz still.",
-    message: "Du hast mal geschrieben, dass dir warm ums Herz wird, wenn du meine Gedichte liest. Mir geht's genauso, wenn ich dich spielen höre. 😙",
+    message: "Du hast mal geschrieben, dass dir warm ums Herz wird, wenn du meine Gedichte liest. Mir geht's genauso, wenn ich dich spielen und singen höre. 😙\n\nDu hast so eine schöne Stimme, und ich mag, wie du dabei ganz bei dir bist und wie viel von dir in so einem Lied steckt. Jedes Mal freu ich mich aufs Neue drüber. Für mich ist das eins der schönsten Geschenke, die man jemandem machen kann.",
   },
   {
     day: 9,
     title: "Unsere Landkarte",
-    subtitle: "Alle Reisen, die wir zusammen gemacht haben",
+    subtitle: "Ein paar Orte, an denen wir zusammen waren",
     type: "map",
     yearBadge: "5 Jahre unterwegs",
-    message: "Sieben Orte in fünf Jahren, und an jedem davon hatte ich mit dir ein bisschen Urlaub vom ganzen Rest. Mein liebster ist bis heute Kißlegg, aber das weißt du ja eh schon. 😉",
-    // Our trips from the chat. Put the photos into `public/photos/` with these names;
-    // add or remove names in `photos` to show more or fewer pictures per place.
+    message: "Hier sind ein paar der Orte, an denen wir zusammen unterwegs waren. Längst nicht alle: Von vielen Besuchen und Wochenenden haben wir uns gar keine Fotos geschickt, und die fehlen hier natürlich.\n\nAber jeder Pin steht für ein Stück Urlaub vom ganzen Rest. Mein liebster ist bis heute Kißlegg, aber das weißt du ja eh schon. 😉",
+    // A few of our trips (found in the chat, so not all of them). Photos live in `public/photos/`.
+    // A photo can get an optional caption: { url: "./photos/karte-kisslegg-1.jpg", caption: "Picknick am See" }
     places: [
       {
         name: "Heidelberg",
         latitude: 49.4094,
         longitude: 8.6942,
         date: "November 2022",
-        note: "Unser allererster gemeinsamer Urlaub: Airbnb, Fahrrad und abends noch die Sonja.",
+        note: "Eins unserer ersten Wochenenden zusammen: Airbnb, Fahrrad und abends noch die Sonja. Und danach kamen noch so viele Besuche mehr.",
         photos: [
           "./photos/karte-heidelberg-1.jpg",
           "./photos/karte-heidelberg-2.jpg",
@@ -303,7 +303,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     yearBadge: "Aus fünf Jahren",
     // audioUrl: "./media/tag-10.m4a",
     mediaCaption: "Drück einfach auf Play ;)",
-    message: "Wir haben uns in fünf Jahren nicht nur geschrieben, sondern uns auch unzählige Sprachnachrichten geschickt. Die hier hab ich rausgesucht, weil ich sie mir bis heute gern anhöre. ☺️",
+    message: "Wir haben uns in fünf Jahren nicht nur geschrieben, sondern uns auch tausende Sprachnachrichten geschickt. Manchmal minutenlang, manchmal nur ein kurzes „Gute Nacht“ vom Kopfkissen aus. 😄\n\nDie hier hab ich rausgesucht, weil ich sie mir bis heute gern anhöre. Deine Stimme hat für mich einfach was unglaublich Beruhigendes. ☺️",
   },
   {
     day: 11,
@@ -311,7 +311,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     subtitle: "Ein Wort seit Tag zwei",
     type: "letter",
     yearBadge: "Seit 28.11.2021",
-    message: "Das Wort kam schon zwei Tage nach unserer ersten Nachricht, und seitdem ganze 80 Mal. 😄\n\nSchon zwei Tage nach dem ersten Hallo hatten wir das Wort Rhythmus gefunden, und seitdem hat's uns durch jeden Takt und jede Pause verbunden.\nMal waren wir schnell, mal ganz langsam, mal ein bisschen aus dem Tritt, doch egal wie das Lied grad klang, wir hielten trotzdem Schritt. 😙",
+    message: "Allein in unserem WhatsApp-Chat kam das Wort schon zwei Tage nach der ersten Nachricht vor, und seitdem noch ganze 80 Mal. 😄 Kein Wunder, wir haben ja auch ständig an unserem gefeilt.\n\nSchon zwei Tage nach dem ersten Hallo hatten wir das Wort Rhythmus gefunden, und seitdem hat's uns durch jeden Takt und jede Pause verbunden.\nMal waren wir schnell, mal ganz langsam, mal ein bisschen aus dem Tritt, doch egal wie das Lied grad klang, wir hielten trotzdem Schritt. 😙\nEs gab Strophen voller Lachen und auch ein paar in Moll, und trotzdem fand ich unser Lied von Anfang an einfach wundervoll.\nUnd auch wenn sich der Takt grad ändert und wir neu zählen müssen, eins, zwei, drei, ich hoff, ein kleines bisschen von unserer Melodie bleibt immer mit dabei. 😘",
   },
   {
     day: 12,
@@ -374,7 +374,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     subtitle: "Quiz: unsere Lieblingszeit",
     type: "quiz",
     yearBadge: "Jeden Abend",
-    message: "Um zehn am Abend war bei uns meistens die schönste Zeit, dann lag ich im Bett und war für dich zum Schreiben bereit.\nUnd auch wenn zwischen uns oft ganz schön viele Kilometer lagen, konnten wir uns so trotzdem jeden Abend noch Gute Nacht sagen. 😙",
+    message: "Um zehn am Abend war bei uns meistens die schönste Zeit, dann lag ich im Bett und war für dich zum Schreiben bereit.\nDer Tag war geschafft und alles Wichtige getan, und dann fing für uns zwei das eigentlich Schöne erst an. 😄\nWir haben erzählt und gelacht und manchmal noch Pläne fürs Wochenende gemacht, und am Ende hieß es dann wie immer viel zu spät: Gute Nacht. 😅\nUnd auch wenn zwischen uns oft ganz schön viele Kilometer lagen, konnten wir uns so trotzdem jeden Abend noch Gute Nacht sagen. 😙",
     quiz: {
       question: "Um welche Uhrzeit haben wir uns am allermeisten geschrieben?",
       options: ["Morgens um sieben", "Mittags um eins", "Abends um zehn"],
@@ -388,7 +388,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     subtitle: "Fünf Jahre WhatsApp, einmal nachgezählt",
     type: "stats",
     yearBadge: "26.11.2021 – heute",
-    message: "Ich hab mal nachgezählt. ;) Am meisten überrascht hat mich, dass wir in fünf Jahren fast exakt gleich viel geschrieben haben: Gerade mal 910 Nachrichten Unterschied. 😄 Und hinter jeder einzelnen Zahl stecken so viele schöne Momente mit dir. 😘",
+    message: "Ich hab mal nachgezählt, zumindest das, was in unserem WhatsApp-Chat steht. ;) Alles, was wir uns am Telefon, bei unseren Treffen oder auf anderen Wegen erzählt haben, steckt da natürlich gar nicht drin.\n\nAm meisten überrascht hat mich, dass wir in fünf Jahren fast exakt gleich viel geschrieben haben: gerade mal 910 Nachrichten Unterschied. 😄 Und hinter jeder einzelnen Zahl stecken so viele schöne Momente mit dir. 😘",
     // Counted from the chat export up to 18.11.2026.
     stats: [
       { value: "1.826", label: "Tage wir", note: "seit dem 01.12.2021" },
@@ -399,10 +399,10 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
       { value: "2.175", label: "× Guten Morgen" },
       { value: "2.084", label: "× Gute Nacht" },
       { value: "795", label: "× hab dich lieb" },
-      { value: "5.122", label: "Fotos" },
+      { value: "5.122", label: "Fotos per WhatsApp" },
       { value: "3.329", label: "Sprachnachrichten" },
       { value: "360 : 34", label: "Spätzle gegen Fusili" },
-      { value: "7", label: "gemeinsame Reisen", note: "von Heidelberg bis Oostvoorne" },
+      { value: "7", label: "Orte auf unserer Landkarte", note: "und bestimmt noch einige mehr" },
     ],
   },
   {
@@ -414,7 +414,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     // videoUrl: "./media/tag-15.mp4",
     // videoPosterUrl: "./photos/tag-15-poster.jpg",
     mediaCaption: "Ton an ;)",
-    message: "Fotos sind schön, aber manchmal braucht's halt auch Ton und Bewegung, damit man sich wieder richtig zurückversetzt fühlt. Bei dem Video hier muss ich jedes Mal grinsen. 😄",
+    message: "Fotos sind schön, aber manchmal braucht's halt auch Ton und Bewegung, damit man sich wieder richtig zurückversetzt fühlt. Bei dem Video hier muss ich jedes Mal grinsen. 😄\n\nIch glaub, man sieht darauf ziemlich gut, wie leicht es mit dir immer war, einfach Spaß zu haben, ganz egal wo wir gerade waren.",
   },
   {
     day: 16,
@@ -423,7 +423,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     type: "compliment",
     yearBadge: "Was ich an dir mag",
     complimentHighlight: "Du hast für jeden Menschen in deinem Leben ein offenes Ohr, und trotzdem hattest du immer noch eins für mich übrig.",
-    message: "Ich weiß, wie viel du jeden Tag für andere gibst, auf der Arbeit und daheim. Pass dabei auch ein bisschen auf dich auf, ja? 😘",
+    message: "Ich weiß, wie viel du jeden Tag für andere gibst: auf der Arbeit, für deine Freundinnen, deine Familie und daheim. Und trotzdem hast du dir immer wieder Zeit genommen, um nach mir zu fragen und mir zuzuhören, auch wenn bei dir selbst gerade viel los war.\n\nPass dabei auch ein bisschen auf dich auf, ja? Du hast es genauso verdient, dass sich jemand um dich kümmert. 😘",
   },
   {
     day: 17,
@@ -432,7 +432,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     type: "voucher",
     yearBadge: "Date Night",
     voucherCode: "SCHICK-ESSEN-17",
-    message: "Ich lad dich in ein richtig schickes Restaurant ein. Vielleicht ja sogar in eins mit Stern, über die hatten wir uns ja schon mal unterhalten. 😄 Du suchst dir aus wann, und ich kümmer mich um den Rest. ;)",
+    message: "Ich lad dich in ein richtig schickes Restaurant ein, mit Stoffservietten, mehreren Gängen und allem drum und dran. Vielleicht ja sogar in eins mit Stern, über die hatten wir uns ja schon mal unterhalten. 😄\n\nDu suchst dir aus wann und wo, und ich kümmer mich um den Rest. Ich freu mich jetzt schon drauf, dich mal wieder ganz schick gemacht mir gegenüber sitzen zu haben. ;)",
   },
   {
     day: 18,
@@ -442,7 +442,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     yearBadge: "Juni 2023",
     photoUrl: "./photos/tag-18.jpg",
     photoCaption: "Unser Häuschen, der See und viel zu viele Mücken",
-    message: "Weißt du noch, Kißlegg, ein paar Tage nur Natur und Ruh, kein Stress und kein Alltag, nur Wald und Wasser, ich und du.\nFür mich ist das bis heute einer unserer allerschönsten Trips gewesen, und wenn du das Foto anschaust, kannst du's mir bestimmt im Gesicht ablesen. ;)",
+    message: "Weißt du noch, Kißlegg, ein paar Tage nur Natur und Ruh, kein Stress und kein Alltag, nur Wald und Wasser, ich und du.\nDas kleine Häuschen, die Pferde, das Picknick im Gras und das gemütliche Café, und zwischendurch die Mücken und der kühle Sprung in den See. 😄\nDu hast mir damals zum Geburtstag ein paar der schönsten Tage überhaupt geschenkt, und ich glaub, du weißt gar nicht, wie oft ich da noch dran denk.\nFür mich ist das bis heute einer unserer allerschönsten Trips gewesen, und wenn du das Foto anschaust, kannst du's mir bestimmt im Gesicht ablesen. ;)",
   },
   {
     day: 19,
@@ -490,7 +490,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     type: "voucher",
     yearBadge: "Jederzeit einlösbar",
     voucherCode: "GEDICHT-20",
-    message: "Du hast mal geschrieben, dass dir beim Lesen meiner Gedichte immer ein bisschen warm ums Herz wird. Dieser Gutschein ist für ein neues, ganz für dich, über was auch immer du willst. Schick mir einfach ein Stichwort, dann fang ich an zu dichten. ;) 😘",
+    message: "Du hast mal geschrieben, dass dir beim Lesen meiner Gedichte immer ein bisschen warm ums Herz wird. Und für dich dichte ich ja sowieso am liebsten. 😄\n\nDieser Gutschein ist für ein neues Gedicht, ganz für dich, über was auch immer du willst: über uns, über einen bestimmten Tag, über deine Lieblingsnudel oder einfach zum Aufmuntern, wenn's dir mal nicht so gut geht. Schick mir einfach ein Stichwort, dann fang ich an zu dichten. ;) 😘",
   },
   {
     day: 21,
@@ -500,7 +500,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     yearBadge: "Jahr 5 • 2025/26",
     // photoUrl: "./photos/tag-21.jpg",
     photoCaption: "Eins meiner liebsten Bilder aus diesem Jahr",
-    message: "Dieses Jahr war für uns beide nicht immer einfach, und trotzdem gab's so schöne Momente wie den hier. Den will ich auf keinen Fall missen. ☺️",
+    message: "Dieses Jahr war für uns beide nicht immer einfach. Es hat sich viel verändert, und manches davon war auch für mich nicht leicht.\n\nUnd trotzdem gab's so schöne Momente wie den hier. Die will ich auf keinen Fall missen, und ich bin froh um jeden einzelnen davon. ☺️",
   },
   {
     day: 22,
@@ -508,7 +508,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     subtitle: "Ein ehrlicher Brief",
     type: "letter",
     yearBadge: "Countdown",
-    message: "Meine liebe Maus,\n\nich will dir mit diesem Glas nichts vormachen: Bei uns hat sich in letzter Zeit einiges verändert, und ich weiß selbst noch nicht, wie es im neuen Jahr mit uns weitergeht. Das macht mich manchmal traurig, aber es ändert nichts daran, wie dankbar ich für die letzten fünf Jahre bin.\n\nDu hast mich aufgefangen, wenn's mir schlecht ging, und mir gezeigt, wie schön es sein kann, einfach nur mit dir zu sein. Das nimmt uns keiner mehr. 😘\n\nIch hab dich sehr lieb.",
+    message: "Meine liebe Maus,\n\nich will dir mit diesem Glas nichts vormachen: Bei uns hat sich in letzter Zeit einiges verändert, und ich weiß selbst noch nicht, wie es im neuen Jahr mit uns weitergeht. Das macht mich manchmal traurig, aber es ändert nichts daran, wie dankbar ich für die letzten fünf Jahre bin.\n\nDu hast mich aufgefangen, wenn's mir schlecht ging, mir zugehört, wenn ich mich selbst nicht verstanden hab, und mir gezeigt, wie schön es sein kann, einfach nur mit dir zu sein. Mit dir hab ich so viel gelacht, so viel gelernt und so viele schöne Orte gesehen, und bei dir hab ich mich immer gesehen gefühlt.\n\nDas nimmt uns keiner mehr. Und egal, wie unser Rhythmus im neuen Jahr klingt: Du wirst für mich immer jemand ganz Besonderes bleiben. 😘\n\nIch hab dich sehr lieb.",
   },
   {
     day: 23,
@@ -517,7 +517,7 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     type: "compliment",
     yearBadge: "Kurz vor Heiligabend",
     complimentHighlight: "Mit dir sind fünf Jahre vergangen wie ein langer, schöner Abend um zehn.",
-    message: "Morgen öffnet sich der letzte Stern. Mach's dir heut Abend schon mal gemütlich. ;)",
+    message: "Morgen öffnet sich der letzte Stern. 🥹 Danke, dass du die letzten 23 Tage immer wieder ins Glas geschaut hast.\n\nMach's dir heut Abend schon mal gemütlich, und denk dran: Um zehn bin ich in Gedanken bestimmt bei dir. ;)",
   },
   {
     day: 24,
@@ -526,6 +526,6 @@ export const ADVENT_DAYS: readonly AdventDay[] = [
     type: "voucher",
     yearBadge: "24. Dezember • Finale",
     voucherCode: "KURZURLAUB-24",
-    message: "Alle 24 Sterne leuchten jetzt. 🥳 Schüttel das Glas ruhig nochmal für den goldenen Schneekugelzauber.\n\nMein letzter Gutschein ist ein Wochenende nur für uns zwei, irgendwo, wo's uns beiden gefällt. Einlösbar dann, wenn dein Kleines mal ein Wochenende gut ohne seine Mama auskommt. Ich warte da gern drauf. 😘\n\nDanke für fünf wunderschöne Jahre. Frohe Weihnachten, meine Liebe. Ich hab dich sooo sehr lieb. ♥️",
+    message: "Alle 24 Sterne leuchten jetzt. 🥳 Schüttel das Glas ruhig nochmal für den goldenen Schneekugelzauber.\n\nMein letzter Gutschein ist ein ganzes Wochenende nur für uns zwei, irgendwo, wo's uns beiden gefällt: vielleicht ein kleines Häuschen im Grünen wie in Kißlegg, vielleicht eine Stadt, in der wir noch nie waren. Einlösbar dann, wenn dein Kleines mal ein Wochenende gut ohne seine Mama auskommt. Ich warte da gern drauf. 😘\n\nDanke für fünf wunderschöne Jahre, für jede Nachricht, jede Umarmung und jeden Abend um zehn. Frohe Weihnachten, meine Liebe. Ich hab dich sooo sehr lieb. ♥️",
   },
 ];

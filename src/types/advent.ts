@@ -15,6 +15,12 @@ export type StarVisualState =
   | "available_past"
   | "opened";
 
+/**
+ * A photo of a map place: just the path, or the path with a short caption,
+ * e.g. { url: "./photos/karte-kisslegg-1.jpg", caption: "Picknick am See" }.
+ */
+export type MapPhoto = string | { readonly url: string; readonly caption?: string };
+
 /** One pin on the "our map" card with the photos taken there. */
 export interface MapPlace {
   readonly name: string;
@@ -23,7 +29,7 @@ export interface MapPlace {
   readonly date?: string;
   readonly note?: string;
   /** One or more image paths, e.g. "./photos/karte-bodensee-1.jpg". */
-  readonly photos: readonly string[];
+  readonly photos: readonly MapPhoto[];
 }
 
 /** A multiple-choice question that guards the card's message. */
