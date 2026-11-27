@@ -163,6 +163,8 @@ export class AppUi {
   private readonly chargeMeter: HTMLElement;
   private readonly chargeFill: HTMLElement;
   private readonly previewPill: HTMLElement;
+  /** Set only in preview mode: opens another day straight from a card. */
+  private cardDayNav: ((day: number) => void) | null = null;
   private readonly finalePill: HTMLElement;
   private readonly muteButton: HTMLButtonElement;
   private readonly constellationButton: HTMLButtonElement;
@@ -578,6 +580,25 @@ export class AppUi {
     this.renderCardContent(day, state);
   }
 
+  /** Preview only: adds ‹ › to every card and lets the arrow keys switch days. */
+  public setCardDayNavigation(handler: (day: number) => void): void {
+    this.cardDayNav = handler;
+    document.addEventListener("keydown", (event) => {
+      if (!this.cardDayNav || this.currentModalDay === null || document.querySelector(".photo-viewer")) {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) {
+        return;
+      }
+      if (event.key === "ArrowLeft" && this.currentModalDay > 1) {
+        this.cardDayNav(this.currentModalDay - 1);
+      } else if (event.key === "ArrowRight" && this.currentModalDay < 24) {
+        this.cardDayNav(this.currentModalDay + 1);
+      }
+    });
+  }
+
   public closeCardModal(): void {
     this.stopActiveMedia();
     this.currentModalDay = null;
@@ -789,6 +810,14 @@ export class AppUi {
           <span class="card-day-pill">Tag ${day.day} • Dezember</span>
           <span class="card-year-pill">${escapeHtml(day.yearBadge)}</span>
         </div>
+        ${
+          this.cardDayNav
+            ? `<div class="preview-card-nav">
+                <button type="button" class="preview-card-nav-btn js-card-prev-day" ${day.day <= 1 ? "disabled" : ""}>‹ Tag ${Math.max(1, day.day - 1)}</button>
+                <button type="button" class="preview-card-nav-btn js-card-next-day" ${day.day >= 24 ? "disabled" : ""}>Tag ${Math.min(24, day.day + 1)} ›</button>
+              </div>`
+            : ""
+        }
         ${this.currentLateNote ? `<p class="card-late-note">${escapeHtml(this.currentLateNote)}</p>` : ""}
         <h2 class="card-title">${escapeHtml(displayTitle)}</h2>
         ${subtitleHtml}
@@ -798,6 +827,12 @@ export class AppUi {
 
     const closeBtn = this.cardContainer.querySelector(".js-close-card-btn");
     closeBtn?.addEventListener("click", () => this.closeCardModal());
+    this.cardContainer
+      .querySelector(".js-card-prev-day")
+      ?.addEventListener("click", () => this.cardDayNav?.(day.day - 1));
+    this.cardContainer
+      .querySelector(".js-card-next-day")
+      ?.addEventListener("click", () => this.cardDayNav?.(day.day + 1));
 
     const redeemBtn = this.cardContainer.querySelector(
       ".js-redeem-voucher-btn"
@@ -1126,8 +1161,10 @@ export class AppUi {
         event.stopPropagation();
         close();
       } else if (event.key === "ArrowLeft") {
+        event.stopPropagation();
         show(index - 1);
       } else if (event.key === "ArrowRight") {
+        event.stopPropagation();
         show(index + 1);
       }
     };

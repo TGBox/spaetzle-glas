@@ -18,12 +18,22 @@ import {
   redeemVoucherDay,
   setJarUnlockedState,
   setMutedState,
+  resetPreviewState,
+  usePreviewStorage,
 } from "./domain/storage";
 import { Haptics } from "./feedback/haptics";
 import { MotionController } from "./input/motionController";
 import { StarPhysicsWorld } from "./physics/starPhysics";
 import { JarScene } from "./scene/jarScene";
 import type { PersistedAppState, StarVisualState } from "./types/advent";
+import {
+  formatPreviewDay,
+  PREVIEW_MAX_DAY,
+  PREVIEW_MIN_DAY,
+  PreviewBar,
+  readPreviewDay,
+  simulatedDate,
+} from "./preview/previewTools";
 import { AppUi } from "./ui/appUi";
 
 function registerServiceWorker(): void {
@@ -63,8 +73,16 @@ function bootstrap(): void {
     return;
   }
 
+  const previewMode = readInitialPreviewFlag();
+  if (previewMode) {
+    usePreviewStorage();
+  }
   let appState: PersistedAppState = loadAppState();
-  let previewAll = readInitialPreviewFlag();
+  /** Simulated calendar day while previewing (null = real date). */
+  let previewDay = previewMode ? readPreviewDay(window.location.search) : null;
+  let previewAll = previewMode && previewDay === null;
+  const getNow = (): Date =>
+    previewDay === null ? new Date() : simulatedDate(previewDay);
   let constellationMode = false;
   let todayCharge = 0;
 
@@ -76,7 +94,7 @@ function bootstrap(): void {
   let motionController: MotionController | null = null;
 
   const syncAllViews = (): void => {
-    const now = new Date();
+    const now = getNow();
     const openedSet = new Set<number>(appState.openedDays);
     const stateByDay = new Map<number, StarVisualState>();
     for (let day = 1; day <= 24; day++) {
@@ -110,14 +128,14 @@ function bootstrap(): void {
 
   const getUnopenedTodayDay = (): number | null => {
     const openedSet = new Set<number>(appState.openedDays);
-    const todayDay = getActiveTodayDay(new Date(), openedSet, previewAll);
+    const todayDay = getActiveTodayDay(getNow(), openedSet, previewAll);
     return todayDay !== null && !openedSet.has(todayDay) ? todayDay : null;
   };
 
   const handleSelectStar = (day: number): void => {
     void soundscape.unlock();
     haptics.tick();
-    const now = new Date();
+    const now = getNow();
 
     if (!isDayUnlocked(day, now, previewAll)) {
       soundscape.playLockedTap();
@@ -151,7 +169,7 @@ function bootstrap(): void {
     if (previewAll) {
       return;
     }
-    const now = new Date();
+    const now = getNow();
     let missedCount = 0;
     for (let day = 1; day <= 24; day++) {
       if (isDayMissed(day, now) && !appState.openedDays.includes(day)) {
@@ -237,7 +255,7 @@ function bootstrap(): void {
     },
     onSelectStar: handleSelectStar,
     onOpenTodayStar: () => {
-      const now = new Date();
+      const now = getNow();
       const openedSet = new Set<number>(appState.openedDays);
       const todayDay = getActiveTodayDay(now, openedSet, previewAll);
       if (todayDay !== null) {
@@ -268,7 +286,7 @@ function bootstrap(): void {
     },
     onRedeemVoucher: (day: number) => {
       void soundscape.unlock();
-      appState = redeemVoucherDay(appState, day, new Date());
+      appState = redeemVoucherDay(appState, day, getNow());
       soundscape.playVoucherRedeem();
       haptics.tick();
       syncAllViews();
@@ -322,6 +340,64 @@ function bootstrap(): void {
       );
     },
   });
+
+  if (previewMode) {
+    /** Opens any day from a card's arrows; a locked day is shown without counting as opened. */
+    const openPreviewDay = (day: number): void => {
+      if (day < 1 || day > 24) {
+        return;
+      }
+      if (isDayUnlocked(day, getNow(), previewAll)) {
+        handleSelectStar(day);
+        return;
+      }
+      const entry = getAdventDayByNumber(day);
+      if (entry) {
+        ui.openCardModal(entry, appState, null);
+        ui.showToast(`Vorschau: Tag ${day} ist am ${formatPreviewDay(previewDay)} noch gesperrt`);
+      }
+    };
+
+    const applyPreviewDay = (day: number | null): void => {
+      previewDay =
+        day === null ? null : Math.max(PREVIEW_MIN_DAY, Math.min(PREVIEW_MAX_DAY, day));
+      if (previewDay !== null) {
+        previewAll = false;
+      }
+      const url = new URL(window.location.href);
+      if (previewDay === null) {
+        url.searchParams.delete("day");
+      } else {
+        url.searchParams.set("day", String(previewDay));
+      }
+      window.history.replaceState(null, "", url);
+      setTodayCharge(0);
+      ui.closeCardModal();
+      syncAllViews();
+      previewBar.update(previewDay, previewAll);
+      ui.showToast(`Vorschau: ${formatPreviewDay(previewDay)}`);
+      window.setTimeout(announceMissedStars, 1600);
+    };
+
+    const previewBar = new PreviewBar({
+      onSetDay: applyPreviewDay,
+      onShiftDay: (delta) => applyPreviewDay((previewDay ?? PREVIEW_MIN_DAY) + delta),
+      onToggleAll: () => {
+        previewAll = !previewAll;
+        syncAllViews();
+        previewBar.update(previewDay, previewAll);
+      },
+      onReset: () => {
+        appState = resetPreviewState();
+        setTodayCharge(0);
+        ui.closeCardModal();
+        syncAllViews();
+        ui.showToast("Vorschau zurückgesetzt: kein Stern geöffnet");
+      },
+    });
+    previewBar.update(previewDay, previewAll);
+    ui.setCardDayNavigation(openPreviewDay);
+  }
 
   motionController = new MotionController({
     onGravityDirection: (direction) => {

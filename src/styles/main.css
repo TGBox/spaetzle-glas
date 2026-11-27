@@ -2083,3 +2083,111 @@ body {
     background: rgba(255, 255, 255, 0.08);
   }
 }
+
+/* Preview toolbar (only with ?preview=true) */
+.preview-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  transform: translateX(-50%);
+  z-index: 150;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  overflow-x: auto;
+  padding: 6px 8px;
+  border-radius: 14px;
+  background: rgba(18, 12, 24, 0.88);
+  border: 1px dashed rgba(255, 212, 121, 0.55);
+  color: var(--cream);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.preview-bar-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: #2a1d24;
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.preview-bar-btn,
+.preview-bar-select {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--cream);
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  .preview-bar-tag,
+  .preview-bar-long {
+    display: none;
+  }
+
+  .preview-bar-select {
+    max-width: 126px;
+    padding: 0 6px;
+  }
+}
+
+.preview-bar-select option {
+  color: #2a1d24;
+}
+
+.preview-bar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.preview-card-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+
+.preview-card-nav-btn {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px dashed currentColor;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+.preview-card-nav-btn:disabled {
+  visibility: hidden;
+}
+
+/* Keep the bottom of the HUD and the cards clear of the toolbar. */
+body:has(.preview-bar) .hud-bottom {
+  padding-bottom: 64px;
+}
+
+body:has(.preview-bar) .overlay {
+  padding-bottom: 72px;
+}
+
+body:has(.preview-bar) .modal-shell {
+  max-height: calc(100dvh - 112px);
+}

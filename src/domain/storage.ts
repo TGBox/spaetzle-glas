@@ -1,6 +1,9 @@
 import type { PersistedAppState } from "../types/advent";
 
 const STORAGE_KEY = "spaetzle-glas-state-v1";
+/** `?preview=true` stores its progress here, so testing never touches her real state. */
+const PREVIEW_STORAGE_KEY = "spaetzle-glas-preview-state-v1";
+let activeStorageKey = STORAGE_KEY;
 
 export interface StorageLike {
   getItem(key: string): string | null;
@@ -103,9 +106,11 @@ export function loadAppState(
   storage: StorageLike = getDefaultStorage()
 ): PersistedAppState {
   try {
-    const raw = storage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(activeStorageKey);
     if (!raw) {
-      return createDefaultAppState();
+      return activeStorageKey === PREVIEW_STORAGE_KEY
+        ? { ...createDefaultAppState(), unlockedJar: true }
+        : createDefaultAppState();
     }
 
     const parsed: unknown = JSON.parse(raw);
@@ -132,9 +137,9 @@ export function saveAppState(
   storage: StorageLike = getDefaultStorage()
 ): void {
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(state));
+    storage.setItem(activeStorageKey, JSON.stringify(state));
   } catch {
-    memoryStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    memoryStorage.setItem(activeStorageKey, JSON.stringify(state));
   }
 }
 
@@ -277,4 +282,18 @@ export function setMutedState(
   };
   saveAppState(next, storage);
   return next;
+}
+
+/** Switches all loads and saves to the separate preview state (call before loading). */
+export function usePreviewStorage(): void {
+  activeStorageKey = PREVIEW_STORAGE_KEY;
+}
+
+/** Starts the preview from scratch: jar open, no star opened, nothing scratched or solved. */
+export function resetPreviewState(
+  storage: StorageLike = getDefaultStorage()
+): PersistedAppState {
+  const fresh: PersistedAppState = { ...createDefaultAppState(), unlockedJar: true };
+  saveAppState(fresh, storage);
+  return fresh;
 }
