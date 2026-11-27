@@ -12,3 +12,6 @@ yarn-error.log*
 .DS_Store
 .idea/
 .vscode/
+
+# Original photos (full size, with GPS data); the app uses the resized copies in public/photos
+src/data/photos/

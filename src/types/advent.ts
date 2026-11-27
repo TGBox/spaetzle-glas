@@ -6,7 +6,8 @@ export type CardType =
   | "media"
   | "map"
   | "quiz"
-  | "bee";
+  | "bee"
+  | "stats";
 
 export type StarVisualState =
   | "locked"
@@ -42,6 +43,15 @@ export interface BeeWord {
   readonly note?: string;
 }
 
+/** One tile of the "our relationship in numbers" card. */
+export interface StatItem {
+  /** The big number, already formatted (e.g. "127.320"). */
+  readonly value: string;
+  readonly label: string;
+  /** Optional small line under the label. */
+  readonly note?: string;
+}
+
 /** A Buchstabiene / Spelling Bee puzzle with a fixed, hand-picked word list. */
 export interface BeePuzzle {
   /** The nine tiles, duplicates allowed (e.g. "STRAßBURG" has two R). */
@@ -69,6 +79,7 @@ export interface AdventDay {
   readonly places?: readonly MapPlace[];
   readonly quiz?: QuizContent;
   readonly bee?: BeePuzzle;
+  readonly stats?: readonly StatItem[];
 }
 
 export interface PersistedAppState {

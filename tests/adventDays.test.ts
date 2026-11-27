@@ -61,6 +61,14 @@ describe("ADVENT_DAYS dataset integrity", () => {
           }
         }
       }
+      if (entry.type === "stats") {
+        expect(entry.stats?.length ?? 0).toBeGreaterThanOrEqual(4);
+        for (const stat of entry.stats ?? []) {
+          expect(stat.value.trim().length).toBeGreaterThan(0);
+          expect(stat.label.trim().length).toBeGreaterThan(0);
+        }
+      }
+
       if (entry.type === "quiz") {
         const quiz = entry.quiz;
         expect(quiz?.question.trim().length).toBeGreaterThan(0);
@@ -80,6 +88,7 @@ describe("ADVENT_DAYS dataset integrity", () => {
         "map",
         "quiz",
         "bee",
+        "stats",
       ])
     );
   });

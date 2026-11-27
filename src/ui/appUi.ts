@@ -74,6 +74,8 @@ function getCardTypeIcon(type: CardType): string {
       return "❓";
     case "bee":
       return "🐝";
+    case "stats":
+      return "📊";
   }
 }
 
@@ -761,6 +763,17 @@ export class AppUi {
         <p class="quiz-feedback js-quiz-feedback" role="status">${solved ? "Richtig! ♥" : ""}</p>
         ${revealHtml}
       `;
+    } else if (day.type === "stats") {
+      const tilesHtml = (day.stats ?? [])
+        .map(
+          (stat, index) =>
+            `<div class="stat-tile" style="animation-delay:${(index * 0.06).toFixed(2)}s"><span class="stat-value">${escapeHtml(stat.value)}</span><span class="stat-label">${escapeHtml(stat.label)}</span>${stat.note ? `<span class="stat-note">${escapeHtml(stat.note)}</span>` : ""}</div>`
+        )
+        .join("");
+      bodySpecificHtml = `
+        <div class="stats-grid">${tilesHtml}</div>
+        <p class="card-message">${escapeHtml(day.message)}</p>
+      `;
     } else {
       const highlight = day.complimentHighlight ?? day.title;
       bodySpecificHtml = `
@@ -969,7 +982,7 @@ export class AppUi {
     const photosHtml = place.photos
       .map(
         (url, index) =>
-          `<figure class="map-photo"><img src="${escapeHtml(url)}" alt="${escapeHtml(place.name)}, Foto ${index + 1}" data-url="${escapeHtml(url)}" /></figure>`
+          `<figure class="map-photo"><img loading="lazy" decoding="async" src="${escapeHtml(url)}" alt="${escapeHtml(place.name)}, Foto ${index + 1}" data-url="${escapeHtml(url)}" /></figure>`
       )
       .join("");
     const countLabel =

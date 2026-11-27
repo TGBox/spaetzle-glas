@@ -29,6 +29,15 @@ function buildDayBody(day: AdventDay, state: PersistedAppState): string {
         : `<p class="print-open">Noch einzulösen</p>`;
       return `${messageMarkup(day.message)}${code}${status}`;
     }
+    case "stats": {
+      const tiles = (day.stats ?? [])
+        .map(
+          (stat) =>
+            `<li><strong>${escapeHtml(stat.value)}</strong> ${escapeHtml(stat.label)}${stat.note ? ` <span class="print-caption">(${escapeHtml(stat.note)})</span>` : ""}</li>`
+        )
+        .join("");
+      return `<ul class="print-stats">${tiles}</ul>${messageMarkup(day.message)}`;
+    }
     case "compliment": {
       const highlight = day.complimentHighlight ?? day.title;
       return `<p class="print-quote">„${escapeHtml(highlight)}“</p>${messageMarkup(day.message)}`;
