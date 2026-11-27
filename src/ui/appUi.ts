@@ -945,7 +945,7 @@ export class AppUi {
       tile.addEventListener("error", () => tile.remove());
     });
 
-    const selectPlace = (index: number): void => {
+    const selectPlace = (index: number, revealPhotos = false): void => {
       this.selectedPlaceIndex = index;
       this.cardContainer
         .querySelectorAll<HTMLElement>(".js-map-pin, .js-map-chip")
@@ -956,13 +956,19 @@ export class AppUi {
           );
         });
       this.renderMapPlace(places[index]);
+      if (revealPhotos) {
+        // The photos sit below the map; bring them into view after a tap on a pin.
+        this.cardContainer
+          .querySelector(".js-map-place")
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
     };
 
     this.cardContainer
       .querySelectorAll<HTMLElement>(".js-map-pin, .js-map-chip")
       .forEach((element) => {
         element.addEventListener("click", () => {
-          selectPlace(Number(element.dataset.index));
+          selectPlace(Number(element.dataset.index), true);
         });
       });
 
@@ -982,7 +988,7 @@ export class AppUi {
     const photosHtml = place.photos
       .map(
         (url, index) =>
-          `<figure class="map-photo"><img loading="lazy" decoding="async" src="${escapeHtml(url)}" alt="${escapeHtml(place.name)}, Foto ${index + 1}" data-url="${escapeHtml(url)}" /></figure>`
+          `<figure class="map-photo"><button type="button" class="map-photo-open js-map-photo-open" data-index="${index}" aria-label="Foto ${index + 1} groß anzeigen"><img loading="lazy" decoding="async" src="${escapeHtml(url)}" alt="${escapeHtml(place.name)}, Foto ${index + 1}" data-url="${escapeHtml(url)}" /></button></figure>`
       )
       .join("");
     const countLabel =
@@ -994,18 +1000,174 @@ export class AppUi {
         <span class="map-place-count">${countLabel}</span>
       </div>
       ${meta ? `<p class="map-place-meta">${meta}</p>` : ""}
-      <div class="map-photos${place.photos.length === 1 ? " is-single" : ""}">${photosHtml}</div>
+      <div class="map-photos-wrap">
+        <div class="map-photos js-map-photos${place.photos.length === 1 ? " is-single" : ""}">${photosHtml}</div>
+        ${
+          place.photos.length > 1
+            ? `<button type="button" class="map-photos-nav is-prev js-map-photos-prev" aria-label="Vorheriges Foto">‹</button>
+               <button type="button" class="map-photos-nav is-next js-map-photos-next" aria-label="Nächstes Foto">›</button>
+               <span class="map-photos-counter js-map-photos-counter">1 / ${place.photos.length}</span>`
+            : ""
+        }
+      </div>
+      <p class="map-photos-hint">Tippe auf ein Foto, um es groß anzusehen.</p>
     `;
+
+    const strip = panel.querySelector<HTMLElement>(".js-map-photos");
+    const counter = panel.querySelector<HTMLElement>(".js-map-photos-counter");
+    const currentIndex = (): number => {
+      if (!strip || !strip.firstElementChild) {
+        return 0;
+      }
+      const step = (strip.firstElementChild as HTMLElement).offsetWidth + 10;
+      return Math.max(0, Math.min(place.photos.length - 1, Math.round(strip.scrollLeft / step)));
+    };
+    const scrollToPhoto = (index: number): void => {
+      const target = strip?.children[index] as HTMLElement | undefined;
+      if (strip && target) {
+        strip.scrollTo({
+          left: target.offsetLeft - (strip.clientWidth - target.offsetWidth) / 2,
+          behavior: "smooth",
+        });
+      }
+    };
+    strip?.addEventListener(
+      "scroll",
+      () => {
+        if (counter) {
+          counter.textContent = `${currentIndex() + 1} / ${place.photos.length}`;
+        }
+      },
+      { passive: true }
+    );
+    panel
+      .querySelector(".js-map-photos-prev")
+      ?.addEventListener("click", () => scrollToPhoto(Math.max(0, currentIndex() - 1)));
+    panel
+      .querySelector(".js-map-photos-next")
+      ?.addEventListener("click", () =>
+        scrollToPhoto(Math.min(place.photos.length - 1, currentIndex() + 1))
+      );
+    panel.querySelectorAll<HTMLButtonElement>(".js-map-photo-open").forEach((button) => {
+      button.addEventListener("click", () => {
+        this.openPhotoViewer(place.name, place.photos, Number(button.dataset.index), (index) =>
+          scrollToPhoto(index)
+        );
+      });
+    });
 
     panel.querySelectorAll<HTMLImageElement>(".map-photo img").forEach((img) => {
       img.addEventListener("error", () => {
-        const figure = img.parentElement;
+        const figure = img.closest("figure");
         if (figure) {
           figure.classList.add("is-missing");
           figure.textContent = `Foto fehlt: ${img.dataset.url ?? ""}`;
         }
       });
     });
+  }
+
+  /**
+   * Fullscreen viewer for the photos of one map place: arrows, swipe, keyboard and a counter.
+   * `onClose` gets the last shown index so the strip below can follow.
+   */
+  private openPhotoViewer(
+    title: string,
+    photos: readonly string[],
+    startIndex: number,
+    onClose: (index: number) => void
+  ): void {
+    let index = Math.max(0, Math.min(photos.length - 1, startIndex));
+    const viewer = document.createElement("div");
+    viewer.className = "photo-viewer";
+    viewer.setAttribute("role", "dialog");
+    viewer.setAttribute("aria-modal", "true");
+    viewer.setAttribute("aria-label", title);
+    viewer.innerHTML = `
+      <img class="photo-viewer-img js-viewer-img" alt="" />
+      <div class="photo-viewer-top">
+        <span class="photo-viewer-title">${escapeHtml(title)} · <span class="js-viewer-counter"></span></span>
+        <button type="button" class="photo-viewer-close js-viewer-close" aria-label="Schließen">✕</button>
+      </div>
+      ${
+        photos.length > 1
+          ? `<button type="button" class="photo-viewer-nav is-prev js-viewer-prev" aria-label="Vorheriges Foto">‹</button>
+             <button type="button" class="photo-viewer-nav is-next js-viewer-next" aria-label="Nächstes Foto">›</button>`
+          : ""
+      }
+    `;
+    const img = viewer.querySelector<HTMLImageElement>(".js-viewer-img");
+    const counter = viewer.querySelector<HTMLElement>(".js-viewer-counter");
+
+    const show = (next: number): void => {
+      index = (next + photos.length) % photos.length;
+      if (img) {
+        img.src = photos[index];
+        img.alt = `${title}, Foto ${index + 1}`;
+      }
+      if (counter) {
+        counter.textContent = `${index + 1} / ${photos.length}`;
+      }
+      // Warm up the neighbours so swiping feels instant.
+      [index - 1, index + 1].forEach((neighbour) => {
+        const url = photos[(neighbour + photos.length) % photos.length];
+        const preload = new Image();
+        preload.src = url;
+      });
+    };
+
+    const close = (): void => {
+      document.removeEventListener("keydown", onKey, true);
+      viewer.remove();
+      onClose(index);
+    };
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        close();
+      } else if (event.key === "ArrowLeft") {
+        show(index - 1);
+      } else if (event.key === "ArrowRight") {
+        show(index + 1);
+      }
+    };
+
+    viewer.querySelector(".js-viewer-close")?.addEventListener("click", close);
+    viewer.querySelector(".js-viewer-prev")?.addEventListener("click", () => show(index - 1));
+    viewer.querySelector(".js-viewer-next")?.addEventListener("click", () => show(index + 1));
+    viewer.addEventListener("click", (event) => {
+      if (event.target === viewer) {
+        close();
+      }
+    });
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    viewer.addEventListener(
+      "touchstart",
+      (event) => {
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+      },
+      { passive: true }
+    );
+    viewer.addEventListener(
+      "touchend",
+      (event) => {
+        const dx = event.changedTouches[0].clientX - touchStartX;
+        const dy = event.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) {
+          show(index + (dx < 0 ? 1 : -1));
+        } else if (dy > 90 && Math.abs(dy) > Math.abs(dx)) {
+          close();
+        }
+      },
+      { passive: true }
+    );
+
+    document.addEventListener("keydown", onKey, true);
+    document.body.appendChild(viewer);
+    show(index);
   }
 
   /**
