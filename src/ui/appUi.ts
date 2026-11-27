@@ -623,7 +623,7 @@ export class AppUi {
     } else if (day.type === "letter") {
       bodySpecificHtml = `
         <p class="card-message">${escapeHtml(day.message)}</p>
-        <div class="wax-seal">♥ 5 Jahre Spätzle &amp; Du</div>
+        <div class="wax-seal">♥ 5 Jahre Spätzle &amp; Fusili</div>
       `;
     } else if (day.type === "voucher") {
       const redeemedDate = state.redeemedVouchers[day.day];
